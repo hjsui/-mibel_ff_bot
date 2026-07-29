@@ -9,6 +9,9 @@ from datetime import datetime, timedelta
 user_data_store = {}
 
 def get_text(user_id, key, **kwargs):
+    # إضافة user_id إلى kwargs إذا لم يكن موجوداً
+    if 'user_id' not in kwargs:
+        kwargs['user_id'] = user_id
     lang = user_data_store.get(user_id, {}).get('lang', 'ar')
     from texts import TEXTS
     text = TEXTS.get(lang, TEXTS['ar']).get(key, key)
