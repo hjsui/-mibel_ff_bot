@@ -73,8 +73,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # التحقق من الاشتراك
     if not db.is_subscribed(user_id):
-        msg = get_text(user_id, 'subscribe_required', bot_name="Befek Account Tool", user_id=user_id)
-        keyboard = [
+        msg = get_text(user_id, 'subscribe_required', bot_name="Befek Account Tool"
+        keyboard =
             [InlineKeyboardButton("💰 شراء الان", callback_data='buy_now')],
             [InlineKeyboardButton("🎫 استخدام كود", callback_data='use_code')],
             [InlineKeyboardButton("📖 شرح الخدمات", callback_data='services_explain')],
