@@ -22,6 +22,12 @@ async def handle_visit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
+    # ✅ رسالة انتظار
+    await query.edit_message_text(
+        "⏳ جاري جلب معلومات الحساب... قد يستغرق هذا بضع ثوانٍ.",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+    
     result = visit_account(account['id'], account.get('region', 'IND'))
     
     if 'error' in result:
@@ -78,6 +84,9 @@ async def handle_nickname_input(update: Update, context: ContextTypes.DEFAULT_TY
         await update.message.reply_text("⚠️ الحساب غير موجود.")
         context.user_data['action'] = None
         return
+    
+    # ✅ رسالة انتظار
+    await update.message.reply_text("⏳ جاري تغيير الاسم... قد يستغرق هذا بضع ثوانٍ.")
     
     access_token = get_access_token_for_account(account)
     if not access_token:
@@ -159,6 +168,9 @@ async def handle_clan_id_input(update: Update, context: ContextTypes.DEFAULT_TYP
         context.user_data['action'] = None
         return
     
+    # ✅ رسالة انتظار
+    await update.message.reply_text("⏳ جاري معالجة طلب القبيلة... قد يستغرق هذا بضع ثوانٍ.")
+    
     jwt_data = convert_eat(account['eat'], "eat_to_jwt")
     if not jwt_data.get("success"):
         await update.message.reply_text("❌ فشل الحصول على JWT.")
@@ -211,6 +223,9 @@ async def handle_friend_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data['action'] = None
         return
     
+    # ✅ رسالة انتظار
+    await update.message.reply_text("⏳ جاري إرسال طلب الصداقة... قد يستغرق هذا بضع ثوانٍ.")
+    
     access_token = get_access_token_for_account(account)
     if not access_token:
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
@@ -244,6 +259,12 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not account:
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
+    
+    # ✅ رسالة انتظار
+    await query.edit_message_text(
+        "⏳ جاري فحص الحظر... قد يستغرق هذا بضع ثوانٍ.",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
     
     access_token = get_access_token_for_account(account)
     if not access_token:
@@ -280,6 +301,12 @@ async def handle_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
+    # ✅ رسالة انتظار
+    await query.edit_message_text(
+        "⏳ جاري جلب أحداث اللعبة... قد يستغرق هذا بضع ثوانٍ.",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+    
     result = get_events(account.get('region', 'IND'))
     
     if 'error' in result:
@@ -310,6 +337,12 @@ async def handle_wishlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not account:
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
+    
+    # ✅ رسالة انتظار
+    await query.edit_message_text(
+        "⏳ جاري جلب قائمة الرغبات... قد يستغرق هذا بضع ثوانٍ.",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
     
     result = get_wishlist(account['id'], account.get('region', 'IND'))
     
