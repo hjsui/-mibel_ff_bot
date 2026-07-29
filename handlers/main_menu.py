@@ -24,7 +24,7 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب بالترتيب المطلوب مع الخدمات الجديدة"""
+    """لوحة تحكم الحساب بالترتيب المطلوب"""
     acc_id = account['id']
     keyboard = [
         [
@@ -91,14 +91,44 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالج الأزرار الرئيسي"""
     query = update.callback_query
-    await query.answer()
-    user_id = update.effective_user.id
-    data = query.data
-
-    if data == 'main_menu':
+    
+    # التحقق من صحة الاستعلام
+    if query.data == 'main_menu':
+        try:
+            await query.answer()
+        except:
+            pass  # تجاهل الخطأ إذا كان الاستعلام قديماً
         await query.edit_message_text(
-            get_text(user_id, 'welcome', bot_name="Befek Account Tool"),
-            reply_markup=get_main_menu(user_id)
+            get_text(query.from_user.id, 'choose'),
+            reply_markup=get_main_menu(query.from_user.id)
         )
         return
+    
+    # معالجة الأزرار الأخرى
+    await query.answer()
+    
+    user_id = update.effective_user.id
+    data = query.data
+    
+    if data == 'add_account':
+        # رسالة إضافة حساب جميلة
+        await query.edit_message_text(
+            "📥 **إضافة حساب جديد**\n\n"
+            "لإضافة حساب، أرسل رابط التوكن (EAT) الخاص بالحساب.\n\n"
+            "📌 مثال:\n"
+            "`https://ticket.kiosgamer.co.id/?eat=...`\n\n"
+            "⚠️ تأكد من أن الرابط يحتوي على `eat=` ويبدأ بـ `https://ticket.kiosgamer.co.id/`",
+            reply_markup=get_back_button(user_id)
+        )
+        return
+    
+    # باقي الأزرار ستُرسل إلى معالجات أخرى
+    # سيتم التعامل معها في bot.py
+
+    # إذا لم يتم التعرف على الزر
+    await query.edit_message_text(
+        "⚠️ هذا الزر غير مفعل بعد.",
+        reply_markup=get_back_button(user_id)
+        )
