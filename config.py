@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # توكن البوت
-BOT_TOKEN = "8982371296:AAF8NEz9j669VMd_zoez9NwSEve_u1n-bt4"
+BOT_TOKEN = "8982371296:AAGPcgpIDtp0gScSz1YZ_zmXxLhzxcPGoT4"
 
 # قائمة الأدمن (user_id)
 ADMIN_IDS = [8530485909]  # أضف معرفات الأدمن هنا
