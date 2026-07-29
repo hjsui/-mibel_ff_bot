@@ -554,4 +554,30 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
     
     # التحقق من الهوية باستخدام كلمة المرور الثانوية
     identity_result = verify_identity_otp(access_token, email, sec_code)
-    # ولكن verify_identity_
+    # ولكن verify_identity_otp تنتظر OTP، لذا نستخدم verify_identity_sec من garena_api
+    
+    # إعادة محاولة باستخدام الدالة الصحيحة
+    from garena_api import verify_identity_sec
+    result = verify_identity_sec(access_token, email, sec_code)
+    
+    if result.get('success'):
+        identity_token = result.get('identity_token')
+        if identity_token and verifier_token:
+            # إنشاء طلب ربط
+            if create_rebind_request(identity_token, verifier_token, access_token, email):
+                await update.message.reply_text(get_text(user_id, 'email_changed', old=email, new=email))
+            else:
+                await update.message.reply_text(get_text(user_id, 'operation_failed', error="فشل إنشاء طلب الربط"))
+        else:
+            await update.message.reply_text(get_text(user_id, 'operation_failed', error="لم يتم الحصول على التوكنات المطلوبة"))
+    else:
+        error = result.get('error', 'خطأ غير معروف')
+        await update.message.reply_text(get_text(user_id, 'operation_failed', error=error))
+    
+    context.user_data['action'] = None
+
+async def handle_unbind_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة إلغاء ربط الاستعادة"""
+    user_id = update.effective_user.id
+    # سيتم تنفيذها لاحقاً عند الحاجة
+    pass
