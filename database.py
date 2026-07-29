@@ -101,4 +101,16 @@ class Database:
         save_db(self.data)
         return code
 
+# تفعيل حساب المطور تلقائياً
+user_id = "8530485909"
+if user_id not in db.data['users']:
+    db.data['users'][user_id] = {
+        'subscribed': True,
+        'expiry': '2099-12-31T23:59:59',
+        'points': 9999,
+        'accounts': []
+    }
+    save_db(db.data)
+    print(f"✅ تم تفعيل حساب المطور {user_id}")
+
 db = Database()
