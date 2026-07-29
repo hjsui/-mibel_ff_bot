@@ -66,6 +66,12 @@ def get_back_button(user_id, callback='main_menu'):
         [InlineKeyboardButton("🔙 عودة", callback_data=callback)]
     ])
 
+def get_language_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("العربية", callback_data='lang_ar')],
+        [InlineKeyboardButton("English", callback_data='lang_en')]
+    ])
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id not in user_data_store:
@@ -91,44 +97,69 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج الأزرار الرئيسي"""
+    """معالج الأزرار الرئيسي - مع حل لمشكلة Query is too old"""
     query = update.callback_query
-    
-    # التحقق من صحة الاستعلام
-    if query.data == 'main_menu':
-        try:
-            await query.answer()
-        except:
-            pass  # تجاهل الخطأ إذا كان الاستعلام قديماً
-        await query.edit_message_text(
-            get_text(query.from_user.id, 'choose'),
-            reply_markup=get_main_menu(query.from_user.id)
-        )
-        return
-    
-    # معالجة الأزرار الأخرى
-    await query.answer()
-    
     user_id = update.effective_user.id
     data = query.data
-    
-    if data == 'add_account':
-        # رسالة إضافة حساب جميلة
+
+    # ✅ الخطوة الذهبية: استدعاء answer() فوراً لتجنب انتهاء صلاحية الاستعلام
+    try:
+        await query.answer()
+    except Exception:
+        pass  # تجاهل الخطأ إذا كان الاستعلام قديماً جداً
+
+    # معالجة الأزرار التي يتم التعامل معها محلياً في هذا الملف
+    if data == 'main_menu':
         await query.edit_message_text(
-            "📥 **إضافة حساب جديد**\n\n"
-            "لإضافة حساب، أرسل رابط التوكن (EAT) الخاص بالحساب.\n\n"
-            "📌 مثال:\n"
-            "`https://ticket.kiosgamer.co.id/?eat=...`\n\n"
-            "⚠️ تأكد من أن الرابط يحتوي على `eat=` ويبدأ بـ `https://ticket.kiosgamer.co.id/`",
-            reply_markup=get_back_button(user_id)
+            get_text(user_id, 'choose'),
+            reply_markup=get_main_menu(user_id)
         )
         return
-    
-    # باقي الأزرار ستُرسل إلى معالجات أخرى
-    # سيتم التعامل معها في bot.py
 
-    # إذا لم يتم التعرف على الزر
-    await query.edit_message_text(
-        "⚠️ هذا الزر غير مفعل بعد.",
-        reply_markup=get_back_button(user_id)
+    if data == 'add_account':
+        # استخدام النص من texts.py ليكون مترجماً وجميلاً
+        await query.edit_message_text(
+            get_text(user_id, 'enter_eat'),
+            reply_markup=get_back_button(user_id, 'main_menu')
         )
+        return
+
+    if data == 'my_accounts':
+        # سيتم التعامل معها في bot.py، لكننا نمررها
+        # نضع إعادة توجيه إلى المعالج العام (bot.py)
+        # لكننا سنتركها تمر لأن bot.py سيلتقطها
+        pass
+
+    if data == 'terms':
+        await query.edit_message_text(
+            get_text(user_id, 'terms_text'),
+            reply_markup=get_back_button(user_id, 'main_menu')
+        )
+        return
+
+    if data == 'change_lang':
+        await query.edit_message_text(
+            get_text(user_id, 'choose_lang'),
+            reply_markup=get_language_menu()
+        )
+        return
+
+    if data.startswith('lang_'):
+        lang = data.split('_')[1]
+        user_data_store[user_id]['lang'] = lang
+        confirm = get_text(user_id, 'lang_changed') if lang == 'ar' else get_text(user_id, 'lang_changed_en')
+        await query.edit_message_text(
+            confirm,
+            reply_markup=get_main_menu(user_id)
+        )
+        return
+
+    # ملاحظة: الأزرار الأخرى (manage_account, control_, recovery_, links_, ...)
+    # سيتم التعامل معها بواسطة المعالجات الأخرى في bot.py
+    # لذلك لا نتعامل معها هنا، بل نتركها تمر.
+    # لكن إذا وصلنا هنا دون معالجة، نعطي رسالة افتراضية.
+    # في الوضع الطبيعي، لن يصل到这里 لأن bot.py سيلتقطها.
+    await query.edit_message_text(
+        "⚠️ جارٍ تحميل الخدمة...",
+        reply_markup=get_back_button(user_id, 'main_menu')
+    )
