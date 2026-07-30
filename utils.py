@@ -56,9 +56,6 @@ def get_account_by_id(user_id: int, account_id: str) -> Optional[Dict]:
     return None
 
 def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) -> Dict:
-    """
-    تحويل EAT مع إعادة المحاولة عند الفشل
-    """
     url = "https://www.fftools.site/api/verify-token"
     headers = {
         "Content-Type": "application/json",
@@ -70,13 +67,12 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
     
     for attempt in range(max_retries):
         try:
-            resp = requests.post(url, json=payload, headers=headers, timeout=30)  # زيادة المهلة إلى 30 ثانية
+            resp = requests.post(url, json=payload, headers=headers, timeout=30)
             if resp.status_code == 200:
                 return resp.json()
             else:
-                # إذا كان الخطأ 5xx، نعيد المحاولة
                 if 500 <= resp.status_code < 600 and attempt < max_retries - 1:
-                    time.sleep(2)  # انتظار 2 ثانية قبل إعادة المحاولة
+                    time.sleep(2)
                     continue
                 return {"success": False, "error": f"HTTP {resp.status_code}"}
         except requests.exceptions.Timeout:
@@ -93,7 +89,6 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
     return {"success": False, "error": "فشل بعد عدة محاولات"}
 
 def get_access_token_for_account(account: Dict) -> Optional[str]:
-    """استخراج access_token مع إعادة المحاولة"""
     access_data = convert_eat(account['eat'], "eat_to_access")
     if access_data.get("success"):
         return access_data.get("result_token")
@@ -111,7 +106,7 @@ def format_datetime(dt: datetime) -> str:
     return dt.strftime('%Y-%m-%d %H:%M:%S') if dt else 'غير محدد'
 
 def is_eat_link(text: str) -> bool:
-    return 'ticket.kiosgamer.co.id' in text or 'eat=' in text
+    return 'discstore.recargajogo.com.br' in text or 'ticket.kiosgamer.co.id' in text or 'eat=' in text
 
 def extract_eat_link(text: str) -> str:
     if 'http' in text:
