@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from utils import get_text, get_user_accounts, get_access_token_for_account, user_data_store, convert_eat
@@ -22,32 +23,45 @@ async def handle_visit(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
-    # ✅ رسالة انتظار
-    await query.edit_message_text(
-        "⏳ جاري جلب معلومات الحساب... قد يستغرق هذا بضع ثوانٍ.",
+    # ساعة رملية متحركة
+    wait_msg = await query.edit_message_text(
+        "⏳ جاري جلب معلومات الحساب... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
     
-    result = visit_account(account['id'], account.get('region', 'IND'))
+    # تحديث الساعة الرملية كل ثانيتين
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري جلب معلومات الحساب... ({i*2}s)")
+        except:
+            pass
     
-    if 'error' in result:
-        await query.edit_message_text(
-            get_text(user_id, 'operation_failed', error=result['error']),
+    try:
+        result = visit_account(account['id'], account.get('region', 'IND'))
+        
+        if 'error' in result:
+            await wait_msg.edit_text(
+                "⚠️ الخادم غير متصل حالياً. حاول مرة أخرى لاحقاً.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+            return
+        
+        msg = get_text(user_id, 'visit_result',
+            uid=result.get('UiD', account['id']),
+            nickname=result.get('NicKnAmE', account['name']),
+            region=result.get('ReGioN', account['region']),
+            level=result.get('LeVeL', 'غير معروف'),
+            likes=result.get('LiKeS', 'غير معروف'),
+            total=result.get('ToTaL', 'غير معروف'),
+            extra=f"\n💬 {result.get('CreDiT', '')}" if result.get('CreDiT') else ""
+        )
+        await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع. حاول مرة أخرى.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
-        return
-    
-    msg = get_text(user_id, 'visit_result',
-        uid=result.get('UiD', account['id']),
-        nickname=result.get('NicKnAmE', account['name']),
-        region=result.get('ReGioN', account['region']),
-        level=result.get('LeVeL', 'غير معروف'),
-        likes=result.get('LiKeS', 'غير معروف'),
-        total=result.get('ToTaL', 'غير معروف'),
-        extra=f"\n💬 {result.get('CreDiT', '')}" if result.get('CreDiT') else ""
-    )
-    
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
 # ========== تغيير الاسم ==========
 async def handle_nickname_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -85,25 +99,36 @@ async def handle_nickname_input(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data['action'] = None
         return
     
-    # ✅ رسالة انتظار
-    await update.message.reply_text("⏳ جاري تغيير الاسم... قد يستغرق هذا بضع ثوانٍ.")
+    # ساعة رملية متحركة
+    wait_msg = await update.message.reply_text("⏳ جاري تغيير الاسم... (0s)")
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري تغيير الاسم... ({i*2}s)")
+        except:
+            pass
     
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        await wait_msg.edit_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
     
-    result = change_nickname(access_token, new_name)
-    
-    if 'error' in result:
-        await update.message.reply_text(
-            get_text(user_id, 'operation_failed', error=result['error']),
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
-    else:
-        await update.message.reply_text(
-            get_text(user_id, 'nickname_changed', new_name=new_name),
+    try:
+        result = change_nickname(access_token, new_name)
+        if 'error' in result:
+            await wait_msg.edit_text(
+                "⚠️ الخادم غير متصل حالياً. حاول مرة أخرى.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                get_text(user_id, 'nickname_changed', new_name=new_name),
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
     
@@ -168,12 +193,18 @@ async def handle_clan_id_input(update: Update, context: ContextTypes.DEFAULT_TYP
         context.user_data['action'] = None
         return
     
-    # ✅ رسالة انتظار
-    await update.message.reply_text("⏳ جاري معالجة طلب القبيلة... قد يستغرق هذا بضع ثوانٍ.")
+    # ساعة رملية متحركة
+    wait_msg = await update.message.reply_text("⏳ جاري معالجة طلب القبيلة... (0s)")
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري معالجة طلب القبيلة... ({i*2}s)")
+        except:
+            pass
     
     jwt_data = convert_eat(account['eat'], "eat_to_jwt")
     if not jwt_data.get("success"):
-        await update.message.reply_text("❌ فشل الحصول على JWT.")
+        await wait_msg.edit_text("❌ فشل الحصول على JWT.")
         context.user_data['action'] = None
         return
     
@@ -181,13 +212,13 @@ async def handle_clan_id_input(update: Update, context: ContextTypes.DEFAULT_TYP
     result = guild_action(action, clan_id, jwt_token)
     
     if 'error' in result:
-        await update.message.reply_text(
-            get_text(user_id, 'operation_failed', error=result['error']),
+        await wait_msg.edit_text(
+            "⚠️ الخادم غير متصل حالياً. حاول مرة أخرى.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
     else:
         msg = get_text(user_id, 'guild_joined' if action == 'join' else 'guild_left', clan_id=clan_id)
-        await update.message.reply_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     
     context.user_data['action'] = None
 
@@ -223,25 +254,36 @@ async def handle_friend_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         context.user_data['action'] = None
         return
     
-    # ✅ رسالة انتظار
-    await update.message.reply_text("⏳ جاري إرسال طلب الصداقة... قد يستغرق هذا بضع ثوانٍ.")
+    # ساعة رملية متحركة
+    wait_msg = await update.message.reply_text("⏳ جاري إرسال طلب الصداقة... (0s)")
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري إرسال طلب الصداقة... ({i*2}s)")
+        except:
+            pass
     
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        await wait_msg.edit_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
     
-    result = friend_request(target_uid, access_token, "add")
-    
-    if 'error' in result:
-        await update.message.reply_text(
-            get_text(user_id, 'operation_failed', error=result['error']),
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
-    else:
-        await update.message.reply_text(
-            get_text(user_id, 'friend_sent', uid=target_uid),
+    try:
+        result = friend_request(target_uid, access_token, "add")
+        if 'error' in result:
+            await wait_msg.edit_text(
+                "⚠️ الخادم غير متصل حالياً. حاول مرة أخرى.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                get_text(user_id, 'friend_sent', uid=target_uid),
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
     
@@ -260,33 +302,43 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
-    # ✅ رسالة انتظار
-    await query.edit_message_text(
-        "⏳ جاري فحص الحظر... قد يستغرق هذا بضع ثوانٍ.",
+    # ساعة رملية متحركة
+    wait_msg = await query.edit_message_text(
+        "⏳ جاري فحص الحظر... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري فحص الحظر... ({i*2}s)")
+        except:
+            pass
     
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(
+        await wait_msg.edit_text(
             get_text(user_id, 'no_access_token'),
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
     
-    result = check_ban(access_token)
-    
-    if result.get('success'):
-        msg = get_text(user_id, 'ban_result',
-            status=result.get('status', 'غير معروف'),
-            uid=result.get('uid', 'غير معروف'),
-            name=result.get('name', 'غير معروف'),
-            region=result.get('region', 'غير معروف')
+    try:
+        result = check_ban(access_token)
+        if result.get('success'):
+            msg = get_text(user_id, 'ban_result',
+                status=result.get('status', 'غير معروف'),
+                uid=result.get('uid', 'غير معروف'),
+                name=result.get('name', 'غير معروف'),
+                region=result.get('region', 'غير معروف')
+            )
+        else:
+            msg = get_text(user_id, 'operation_failed', error=result.get('error', 'خطأ غير معروف'))
+        await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع.",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
-    else:
-        msg = get_text(user_id, 'operation_failed', error=result.get('error', 'خطأ غير معروف'))
-    
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
 # ========== أحداث اللعبة ==========
 async def handle_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -301,29 +353,39 @@ async def handle_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
-    # ✅ رسالة انتظار
-    await query.edit_message_text(
-        "⏳ جاري جلب أحداث اللعبة... قد يستغرق هذا بضع ثوانٍ.",
+    # ساعة رملية متحركة
+    wait_msg = await query.edit_message_text(
+        "⏳ جاري جلب أحداث اللعبة... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري جلب أحداث اللعبة... ({i*2}s)")
+        except:
+            pass
     
-    result = get_events(account.get('region', 'IND'))
-    
-    if 'error' in result:
-        msg = get_text(user_id, 'operation_failed', error=result['error'])
-    else:
-        events_text = ""
-        for event in result.get('events', []):
-            events_text += f"• **{event.get('name', 'غير معروف')}**\n"
-            events_text += f"  📅 {event.get('date', 'غير محدد')}\n"
-            events_text += f"  📝 {event.get('description', '')}\n\n"
-        
-        if not events_text:
-            events_text = "لا توجد أحداث حالياً."
-        
-        msg = get_text(user_id, 'events_result', events=events_text)
-    
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_events(account.get('region', 'IND'))
+        if 'error' in result:
+            msg = get_text(user_id, 'operation_failed', error=result['error'])
+        else:
+            events_text = ""
+            for event in result.get('events', []):
+                events_text += f"• **{event.get('name', 'غير معروف')}**\n"
+                events_text += f"  📅 {event.get('date', 'غير محدد')}\n"
+                events_text += f"  📝 {event.get('description', '')}\n\n"
+            
+            if not events_text:
+                events_text = "لا توجد أحداث حالياً."
+            
+            msg = get_text(user_id, 'events_result', events=events_text)
+        await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع.",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
 
 # ========== قائمة الرغبات ==========
 async def handle_wishlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -338,26 +400,36 @@ async def handle_wishlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_back_button(user_id))
         return
     
-    # ✅ رسالة انتظار
-    await query.edit_message_text(
-        "⏳ جاري جلب قائمة الرغبات... قد يستغرق هذا بضع ثوانٍ.",
+    # ساعة رملية متحركة
+    wait_msg = await query.edit_message_text(
+        "⏳ جاري جلب قائمة الرغبات... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
+    for i in range(1, 4):
+        await asyncio.sleep(2)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري جلب قائمة الرغبات... ({i*2}s)")
+        except:
+            pass
     
-    result = get_wishlist(account['id'], account.get('region', 'IND'))
-    
-    if 'error' in result:
-        msg = get_text(user_id, 'operation_failed', error=result['error'])
-    else:
-        wishlist_items = result.get('wishlist', [])
-        if wishlist_items:
-            items_text = ""
-            for item in wishlist_items[:10]:
-                items_text += f"• 🎁 {item.get('item_id', 'غير معروف')}\n"
-                items_text += f"  📅 {item.get('release_time', 'غير محدد')}\n\n"
+    try:
+        result = get_wishlist(account['id'], account.get('region', 'IND'))
+        if 'error' in result:
+            msg = get_text(user_id, 'operation_failed', error=result['error'])
         else:
-            items_text = "قائمة الرغبات فارغة."
-        
-        msg = get_text(user_id, 'wishlist_result', wishlist=items_text)
-    
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+            wishlist_items = result.get('wishlist', [])
+            if wishlist_items:
+                items_text = ""
+                for item in wishlist_items[:10]:
+                    items_text += f"• 🎁 {item.get('item_id', 'غير معروف')}\n"
+                    items_text += f"  📅 {item.get('release_time', 'غير محدد')}\n\n"
+            else:
+                items_text = "قائمة الرغبات فارغة."
+            
+            msg = get_text(user_id, 'wishlist_result', wishlist=items_text)
+        await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    except Exception as e:
+        await wait_msg.edit_text(
+            "⚠️ حدث خطأ غير متوقع.",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
