@@ -34,9 +34,7 @@ logging.basicConfig(
 
 # ========== أمر الأدمن (/meow) ==========
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """لوحة تحكم الأدمن - للمطور فقط"""
     user_id = update.effective_user.id
-    
     if str(user_id) != "8530485909":
         await update.message.reply_text("⛔ هذا الأمر مخصص للأدمن فقط.")
         return
@@ -47,7 +45,6 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("➕ توليد كود", callback_data='admin_gen_code')],
         [InlineKeyboardButton("🔙 عودة", callback_data='main_menu')]
     ]
-    
     await update.message.reply_text(
         "⚙️ **لوحة تحكم الأدمن**\n\nاختر الإجراء المطلوب:",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -55,7 +52,6 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== معالجات أزرار الأدمن ==========
 async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة أزرار لوحة تحكم الأدمن"""
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
@@ -71,13 +67,11 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not users:
             await query.edit_message_text("📭 لا يوجد مستخدمين مسجلين.")
             return
-        
         text = "👥 **قائمة المستخدمين:**\n\n"
         for uid, info in users.items():
             status = "✅ مفعل" if info.get('subscribed') else "❌ غير مفعل"
             expiry = info.get('expiry', 'غير محدد')
             text += f"• `{uid}` - {status} (ينتهي: {expiry})\n"
-        
         await query.edit_message_text(text, reply_markup=get_back_button(user_id, 'admin_panel'))
     
     elif data == 'admin_codes':
@@ -85,17 +79,14 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if not codes:
             await query.edit_message_text("📭 لا توجد أكواد.")
             return
-        
         text = "🎫 **الأكواد المتاحة:**\n\n"
         for code, info in codes.items():
             used = "✅ مستخدم" if info.get('used') else "❌ غير مستخدم"
             text += f"• `{code}` - {used}\n"
-        
         await query.edit_message_text(text, reply_markup=get_back_button(user_id, 'admin_panel'))
     
     elif data == 'admin_gen_code':
-        import random
-        import string
+        import random, string
         new_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
         db.data['codes'][new_code] = {
             'used': False,
@@ -104,7 +95,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
             'used_by': None
         }
         save_db(db.data)
-        
         await query.edit_message_text(
             f"✅ تم توليد كود جديد:\n\n`{new_code}`\n\nيمكن للمستخدمين استخدامه عبر زر 'استخدام كود'.",
             reply_markup=get_back_button(user_id, 'admin_panel')
@@ -124,7 +114,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== معالجات النصوص العامة ==========
 async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة جميع الإدخالات النصية (OTP، إيميل، كود، الخ)"""
     user_id = update.effective_user.id
     action = context.user_data.get('action')
     
@@ -145,12 +134,10 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == 'waiting_code':
         await handle_code_input(update, context)
     else:
-        # أي نص آخر (مثل إضافة حساب عبر EAT)
         await handle_add_account(update, context)
 
 # ========== الوظيفة الرئيسية ==========
 def main():
-    """تشغيل البوت"""
     app = Application.builder().token(BOT_TOKEN).build()
     
     # ===== الأوامر =====
@@ -158,7 +145,7 @@ def main():
     app.add_handler(CommandHandler("meow", admin_panel))
     
     # ===== أزرار القائمة الرئيسية (يتم التعامل معها في main_menu.py) =====
-    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en)$'))
+    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
     
     # ===== معالجات الحسابات =====
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
