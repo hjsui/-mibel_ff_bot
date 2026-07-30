@@ -8,7 +8,6 @@ from config import SUBSCRIPTION_PLANS
 DB_FILE = "database.json"
 
 def load_db():
-    """تحميل قاعدة البيانات من الملف"""
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, 'r', encoding='utf-8') as f:
@@ -18,7 +17,6 @@ def load_db():
     return {}
 
 def save_db(data):
-    """حفظ قاعدة البيانات إلى الملف"""
     with open(DB_FILE, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
@@ -26,18 +24,16 @@ class Database:
     def __init__(self):
         self.data = load_db()
         self._init_defaults()
-        self._activate_dev_account()  # تفعيل حساب المطور تلقائياً
+        self._activate_dev_account()
         save_db(self.data)
 
     def _init_defaults(self):
-        """تهيئة الهيكل الأساسي لقاعدة البيانات"""
         if 'users' not in self.data:
             self.data['users'] = {}
         if 'codes' not in self.data:
             self.data['codes'] = {}
 
     def _activate_dev_account(self):
-        """تفعيل حساب المطور تلقائياً (ID: 8530485909)"""
         dev_id = "8530485909"
         if dev_id not in self.data['users']:
             self.data['users'][dev_id] = {
@@ -48,14 +44,12 @@ class Database:
             }
             print(f"✅ تم تفعيل حساب المطور {dev_id}")
         else:
-            # تحديث الحساب إذا كان موجوداً
             self.data['users'][dev_id]['subscribed'] = True
             self.data['users'][dev_id]['expiry'] = '2099-12-31T23:59:59'
             self.data['users'][dev_id]['points'] = 9999
             print(f"✅ تم تحديث حساب المطور {dev_id}")
 
     def get_user(self, user_id):
-        """جلب بيانات مستخدم معين، وإنشاء حساب جديد إذا لم يكن موجوداً"""
         user_id = str(user_id)
         if user_id not in self.data['users']:
             self.data['users'][user_id] = {
@@ -68,13 +62,11 @@ class Database:
         return self.data['users'][user_id]
 
     def update_user(self, user_id, data):
-        """تحديث بيانات مستخدم"""
         user_id = str(user_id)
         self.data['users'][user_id] = data
         save_db(self.data)
 
     def is_subscribed(self, user_id):
-        """التحقق من صلاحية اشتراك المستخدم"""
         user = self.get_user(user_id)
         if not user.get('subscribed'):
             return False
@@ -91,7 +83,6 @@ class Database:
         return user.get('subscribed', False)
 
     def activate_subscription(self, user_id, plan_key):
-        """تفعيل اشتراك لمستخدم معين"""
         user = self.get_user(user_id)
         plan = SUBSCRIPTION_PLANS.get(plan_key)
         if not plan:
@@ -104,7 +95,6 @@ class Database:
         return True
 
     def use_code(self, code, user_id):
-        """استخدام كود تفعيل"""
         if code not in self.data['codes']:
             return False, "❌ كود غير صالح"
         code_data = self.data['codes'][code]
@@ -122,7 +112,6 @@ class Database:
         return False, "❌ فشل التفعيل"
 
     def generate_code(self, generated_by, plan_key="lifetime"):
-        """توليد كود تفعيل جديد"""
         import random
         import string
         code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
@@ -136,15 +125,12 @@ class Database:
         return code
 
     def get_all_users(self):
-        """جلب جميع المستخدمين"""
         return self.data.get('users', {})
 
     def get_all_codes(self):
-        """جلب جميع الأكواد"""
         return self.data.get('codes', {})
 
     def add_user_manually(self, user_id, subscribed=True, expiry=None, points=0):
-        """إضافة مستخدم يدوياً (للوحة التحكم)"""
         user_id = str(user_id)
         if expiry is None:
             expiry = (datetime.now() + timedelta(days=365)).isoformat()
@@ -158,7 +144,6 @@ class Database:
         return True
 
     def delete_user(self, user_id):
-        """حذف مستخدم"""
         user_id = str(user_id)
         if user_id in self.data['users']:
             del self.data['users'][user_id]
@@ -167,11 +152,9 @@ class Database:
         return False
 
     def add_account_to_user(self, user_id, account_data):
-        """إضافة حساب لمستخدم"""
         user = self.get_user(user_id)
         if 'accounts' not in user:
             user['accounts'] = []
-        # التحقق من عدم التكرار
         for acc in user['accounts']:
             if acc.get('id') == account_data.get('id'):
                 return False
@@ -180,7 +163,6 @@ class Database:
         return True
 
     def remove_account_from_user(self, user_id, account_id):
-        """حذف حساب من مستخدم"""
         user = self.get_user(user_id)
         if 'accounts' not in user:
             return False
@@ -191,5 +173,4 @@ class Database:
                 return True
         return False
 
-# إنشاء كائن قاعدة البيانات
 db = Database()
