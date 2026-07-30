@@ -76,7 +76,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_data_store[user_id] = {'lang': 'ar', 'accounts': []}
     
     if not db.is_subscribed(user_id):
-        msg = get_text(user_id, 'subscribe_required', bot_name="Befek Account Tool")
+        msg = get_text(user_id, 'subscribe_required', bot_name="mibel ff")
         keyboard = [
             [InlineKeyboardButton("💰 شراء الان", callback_data='buy_now')],
             [InlineKeyboardButton("🎫 استخدام كود", callback_data='use_code')],
@@ -88,7 +88,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     await update.message.reply_text(
-        get_text(user_id, 'welcome', bot_name="Befek Account Tool"),
+        get_text(user_id, 'welcome', bot_name="mibel ff"),
         reply_markup=get_main_menu(user_id)
     )
 
@@ -102,8 +102,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
-    # ===== الأزرار التي يتم التعامل معها محلياً =====
-    
     if data == 'main_menu':
         await query.edit_message_text(
             get_text(user_id, 'choose'),
@@ -118,7 +116,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ✅ تحكم في الحساب
     if data == 'manage_account':
         accounts = get_user_accounts(user_id)
         if not accounts:
@@ -137,7 +134,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ✅ حساباتي
     if data == 'my_accounts':
         accounts = get_user_accounts(user_id)
         if not accounts:
@@ -180,5 +176,4 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # الأزرار الأخرى تمر إلى bot.py
     return
