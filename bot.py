@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
@@ -32,9 +33,52 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+# ========== معالج الأخطاء العالمي ==========
+async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    معالج الأخطاء المركزي - يعرض رسائل ودية للمستخدم بدلاً من الأخطاء التقنية
+    """
+    try:
+        raise context.error
+    except Exception as e:
+        error_msg = str(e)
+        
+        # تحويل الأخطاء التقنية إلى رسائل ودية
+        if "NameResolutionError" in error_msg or "Failed to resolve" in error_msg:
+            friendly_msg = "⚠️ الخادم غير متصل حالياً. حاول مرة أخرى لاحقاً."
+        elif "Timeout" in error_msg or "timed out" in error_msg:
+            friendly_msg = "⏳ انتهت مهلة الاتصال. الخادم بطيء، حاول مجدداً."
+        elif "Conflict" in error_msg:
+            friendly_msg = "⚠️ يوجد نسخة أخرى من البوت تعمل. انتظر قليلاً."
+        elif "BadRequest" in error_msg:
+            friendly_msg = "⚠️ طلب غير صحيح. تأكد من البيانات المدخلة."
+        elif "HTTPSConnectionPool" in error_msg:
+            friendly_msg = "⚠️ الخادم غير متاح. حاول مرة أخرى لاحقاً."
+        elif "ConnectionError" in error_msg:
+            friendly_msg = "⚠️ لا يوجد اتصال بالإنترنت. تأكد من اتصالك."
+        elif "JSONDecodeError" in error_msg:
+            friendly_msg = "⚠️ حدث خطأ في قراءة البيانات. حاول مرة أخرى."
+        else:
+            # إذا كان الخطأ غير معروف، نعرض رسالة عامة مع جزء بسيط من الخطأ
+            friendly_msg = f"❌ حدث خطأ غير متوقع: {error_msg[:80]}..."
+        
+        # إرسال الرسالة للمستخدم إن أمكن
+        if update and update.effective_message:
+            try:
+                await update.effective_message.reply_text(friendly_msg)
+            except:
+                pass
+        elif update and update.callback_query:
+            try:
+                await update.callback_query.message.reply_text(friendly_msg)
+            except:
+                pass
+
 # ========== أمر الأدمن (/meow) ==========
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """لوحة تحكم الأدمن - للمطور فقط"""
     user_id = update.effective_user.id
+    
     if str(user_id) != "8530485909":
         await update.message.reply_text("⛔ هذا الأمر مخصص للأدمن فقط.")
         return
@@ -45,6 +89,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("➕ توليد كود", callback_data='admin_gen_code')],
         [InlineKeyboardButton("🔙 عودة", callback_data='main_menu')]
     ]
+    
     await update.message.reply_text(
         "⚙️ **لوحة تحكم الأدمن**\n\nاختر الإجراء المطلوب:",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -52,6 +97,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== معالجات أزرار الأدمن ==========
 async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة أزرار لوحة تحكم الأدمن"""
     query = update.callback_query
     await query.answer()
     user_id = update.effective_user.id
@@ -114,6 +160,7 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== معالجات النصوص العامة ==========
 async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """معالجة جميع الإدخالات النصية (OTP، إيميل، كود، الخ)"""
     user_id = update.effective_user.id
     action = context.user_data.get('action')
     
@@ -134,18 +181,23 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == 'waiting_code':
         await handle_code_input(update, context)
     else:
+        # أي نص آخر (مثل إضافة حساب عبر EAT)
         await handle_add_account(update, context)
 
 # ========== الوظيفة الرئيسية ==========
 def main():
+    """تشغيل البوت"""
     app = Application.builder().token(BOT_TOKEN).build()
+    
+    # ===== معالج الأخطاء العالمي =====
+    app.add_error_handler(error_handler)
     
     # ===== الأوامر =====
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("meow", admin_panel))
     
     # ===== أزرار القائمة الرئيسية (يتم التعامل معها في main_menu.py) =====
-    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
+    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en)$'))
     
     # ===== معالجات الحسابات =====
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
