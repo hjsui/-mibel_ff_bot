@@ -7,7 +7,6 @@ from typing import Dict, Optional, Any
 
 logging.basicConfig(level=logging.INFO)
 
-# ========== 1. زيارة الحساب (Free Fire Visit API) ==========
 def visit_account(uid: str, region: str = "IND") -> Dict:
     url = "http://2.24.160.65:5000/Bmw"
     params = {"uid": uid, "region": region}
@@ -19,9 +18,7 @@ def visit_account(uid: str, region: str = "IND") -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
-# ========== 2. تغيير الاسم (Nickname Changer API) ==========
 def change_nickname(access_token: str, new_nickname: str) -> Dict:
-    # استبدل بالـ URL الفعلي
     url = "https://rizer/rizer"
     params = {"access_token": access_token, "new_nickname": new_nickname}
     try:
@@ -32,7 +29,6 @@ def change_nickname(access_token: str, new_nickname: str) -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
-# ========== 3. إدارة القبيلة (Guild Join/Leave API) ==========
 def guild_action(action: str, clan_id: str, jwt_token: str) -> Dict:
     if action == 'join':
         url = "https://rizer/request_clan"
@@ -47,9 +43,7 @@ def guild_action(action: str, clan_id: str, jwt_token: str) -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
-# ========== 4. طلب صداقة (Friend Request API) ==========
 def friend_request(target_uid: str, access_token: str, action: str = "add") -> Dict:
-    # استبدل بالـ URL الفعلي
     url = "https://XXXXX/Tcp"
     params = {"uid": target_uid, "action": action}
     headers = {"Authorization": f"Bearer {access_token}"}
@@ -61,7 +55,6 @@ def friend_request(target_uid: str, access_token: str, action: str = "add") -> D
     except Exception as e:
         return {"error": str(e)}
 
-# ========== 5. فحص الحظر (Ban Check API) ==========
 def check_ban(access_token: str) -> Dict:
     url = "https://ffidbanapi.vercel.app/ban-account"
     params = {"access-token": access_token, "key": "ANIXH"}
@@ -82,7 +75,6 @@ def check_ban(access_token: str) -> Dict:
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# ========== 6. أحداث اللعبة (Events API) ==========
 def get_events(region: str = "IND") -> Dict:
     url = "https://ff-events-info.vercel.app/events"
     params = {"region": region}
@@ -94,9 +86,7 @@ def get_events(region: str = "IND") -> Dict:
     except Exception as e:
         return {"error": str(e)}
 
-# ========== 7. معلومات قائمة الرغبات (Wishlist API) ==========
 def get_wishlist(uid: str, region: str = "IND") -> Dict:
-    # استبدل بالـ URL الفعلي
     url = "https://ff-wishlist-api.vercel.app/wish"
     params = {"uid": uid, "region": region}
     try:
