@@ -10,7 +10,8 @@ from utils import (
 from garena_api import (
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
     verify_identity_otp, cancel_request,
-    revoke_token, create_rebind_request, create_unbind_request
+    revoke_token, create_rebind_request, create_unbind_request,
+    format_recovery_info, format_platforms
 )
 from external_apis import friend_request
 from handlers.main_menu import get_back_button, get_main_menu, get_account_controls
@@ -20,20 +21,26 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     text = update.message.text.strip()
     
-    if 'ticket.kiosgamer.co.id' not in text and 'eat=' not in text:
+    if 'discstore.recargajogo.com.br' not in text and 'ticket.kiosgamer.co.id' not in text and 'eat=' not in text:
         await update.message.reply_text(
-            "⚠️ أرسل رابط التوكن (EAT) الصحيح.\nمثال: https://ticket.kiosgamer.co.id/?eat=...",
+            "⚠️ أرسل رابط التوكن (EAT) الصحيح.\nمثال: https://discstore.recargajogo.com.br/?eat=...",
             reply_markup=get_back_button(user_id)
         )
         return
     
-    await update.message.reply_text("⏳ جاري تحويل التوكن... قد يستغرق هذا بضع ثوانٍ.")
+    wait_msg = await update.message.reply_text("⏳ جاري تحويل التوكن... (0s)")
+    for i in range(1, 4):
+        await asyncio.sleep(1.5)
+        try:
+            await wait_msg.edit_text(f"⏳ جاري تحويل التوكن... ({i*1.5}s)")
+        except:
+            pass
     
     jwt_data = convert_eat(text, "eat_to_jwt")
     access_data = convert_eat(text, "eat_to_access")
     
     if not jwt_data.get("success") or not access_data.get("success"):
-        await update.message.reply_text(
+        await wait_msg.edit_text(
             "❌ فشل التحويل. تأكد من الرابط وصحته.",
             reply_markup=get_back_button(user_id)
         )
@@ -45,9 +52,9 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     if add_account(user_id, nickname, account_id, text, region):
         msg = get_text(user_id, 'account_linked', name=nickname, id=account_id, region=region)
-        await update.message.reply_text(msg, reply_markup=get_main_menu(user_id))
+        await wait_msg.edit_text(msg, reply_markup=get_main_menu(user_id))
     else:
-        await update.message.reply_text(
+        await wait_msg.edit_text(
             get_text(user_id, 'account_exists'),
             reply_markup=get_main_menu(user_id)
         )
@@ -195,7 +202,7 @@ async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=get_main_menu(user_id)
         )
 
-# ========== ✅ كشف الاستعادة (تم التصحيح) ==========
+# ========== كشف الاستعادة ==========
 async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -217,7 +224,6 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # ✅ رسالة انتظار مع ساعة رملية
     wait_msg = await query.edit_message_text(
         "⏳ جاري كشف الاستعادة... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
@@ -231,21 +237,24 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         result = check_bind_info(access_token)
-        if result and result.get("success") and result.get("data"):
-            data = result.get("data", {})
-            email = data.get("email", "غير موجود")
-            email_to_be = data.get("email_to_be", "لا يوجد")
-            countdown = data.get("request_exec_countdown", 0)
-            msg = f"🔐 **تفاصيل استعادة الحساب**\n\n📧 البريد الحالي: `{email}`\n📨 البريد المعلق: `{email_to_be}`\n⏳ الوقت المتبقي: `{countdown}` ثانية"
+        if result:
+            formatted = format_recovery_info(result)
+            msg = get_text(
+                user_id, 'recovery_result',
+                current_email=formatted['current_email'],
+                pending_email=formatted['pending_email'],
+                countdown=formatted['countdown'],
+                status=formatted['status'],
+                explanation=formatted['explanation']
+            )
         else:
-            # عرض رسالة خطأ واضحة ولكن غير تقنية
             msg = "⚠️ لم نتمكن من جلب معلومات الاستعادة. تأكد من صحة التوكن أو حاول لاحقاً."
-    except Exception as e:
+    except Exception:
         msg = "⚠️ حدث خطأ أثناء جلب المعلومات. حاول مرة أخرى."
     
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== ✅ كشف روابط (تم التصحيح) ==========
+# ========== كشف روابط ==========
 async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -267,7 +276,6 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
-    # ✅ رسالة انتظار مع ساعة رملية
     wait_msg = await query.edit_message_text(
         "⏳ جاري سحب الروابط الثانوية... (0s)",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
@@ -281,27 +289,17 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         result = get_linked_platforms(access_token)
-        if result and result.get("success") and result.get("data"):
-            platforms = result.get("data", {}).get("bounded_accounts", [])
-            if platforms:
-                text = "🔗 **المنصات المرتبطة**\n\n"
-                for p in platforms:
-                    platform = p.get("platform", "غير معروف")
-                    user_info = p.get("user_info", {})
-                    name = user_info.get("nickname", user_info.get("email", "غير معروف"))
-                    text += f"• {platform}: `{name}`\n"
-                msg = text
-            else:
-                msg = "🔗 لا توجد روابط مرتبطة بهذا الحساب."
+        if result:
+            platforms = format_platforms(result)
+            msg = get_text(user_id, 'links_result', platforms=platforms)
         else:
             msg = "⚠️ لم نتمكن من جلب الروابط. تأكد من صحة التوكن أو حاول لاحقاً."
-    except Exception as e:
+    except Exception:
         msg = "⚠️ حدث خطأ أثناء جلب الروابط. حاول مرة أخرى."
     
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== باقي الخدمات ==========
-# (نفس الكود السابق مع تحسينات في معالجة الأخطاء، لكنني سأختصر هنا لتوفير المساحة، لكنها بنفس المنطق)
+# ========== بوت رمز الأمان ==========
 async def handle_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -315,6 +313,7 @@ async def handle_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
+# ========== تجربة رمز الأمان ==========
 async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -328,6 +327,7 @@ async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
+# ========== إضافة/تغيير استعادة ==========
 async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -341,6 +341,7 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
+# ========== حذف روابط ثانوية ==========
 async def handle_delete_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -361,6 +362,7 @@ async def handle_delete_links(update: Update, context: ContextTypes.DEFAULT_TYPE
         msg = "❌ فشل إلغاء الطلب المعلق."
     await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ========== حرق التوكيل ==========
 async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -381,6 +383,7 @@ async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = get_text(user_id, 'operation_failed', error="فشل حرق التوكن")
     await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ========== سبام تسجيل دخول ==========
 async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -492,6 +495,33 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
     verifier_token = context.user_data.get('verifier_token')
     if not acc_id or not email or not verifier_token:
         await update.message.reply_text("⚠️ انتهت الجلسة، أعد المحاولة.")
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    context.user_data['email'] = email
+    if operation == 'send_otp':
+        if send_otp(email, access_token):
+            await update.message.reply_text(get_text(user_id, 'otp_sent', email=email))
+            context.user_data['action'] = 'waiting_otp'
+            await update.message.reply_text(get_text(user_id, 'enter_otp'))
+        else:
+            await update.message.reply_text(get_text(user_id, 'operation_failed', error="فشل إرسال OTP"))
+            context.user_data['action'] = None
+    elif operation == 'verify_otp':
+        await update.message.reply_text(get_text(user_id, 'enter_otp'))
+        context.user_data['action'] = 'waiting_otp'
+    elif operation == 'add_recovery':
+        await update.message.reply_text(get_text(user_id, 'enter_otp'))
         context.user_data['action'] = 'waiting_otp'
 
 async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
