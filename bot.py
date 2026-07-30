@@ -166,8 +166,8 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("meow", admin_panel))
     
-    # ===== أزرار القائمة الرئيسية =====
-    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|manage_account|add_account|my_accounts|terms|change_lang|buy_now|use_code|services_explain|customer_service|bot_group)$'))
+    # ===== أزرار القائمة الرئيسية (يتم التعامل معها في main_menu.py) =====
+    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
     
     # ===== معالجات الحسابات =====
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
