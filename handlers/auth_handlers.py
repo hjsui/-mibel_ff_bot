@@ -5,6 +5,7 @@ from telegram.ext import ContextTypes
 from utils import get_text
 from database import db
 from config import ADMIN_IDS
+from handlers.main_menu import get_main_menu
 
 # ========== معالجات الاشتراكات ==========
 async def handle_buy_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -12,7 +13,6 @@ async def handle_buy_now(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    # عرض باقات الاشتراك
     keyboard = []
     for key, plan in db.SUBSCRIPTION_PLANS.items():
         keyboard.append([
@@ -140,7 +140,6 @@ async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⛔ هذا الأمر مخصص للأدمن فقط.")
         return
     
-    # إحصائيات
     users_count = len(db.data['users'])
     codes_count = len(db.data['codes'])
     
@@ -157,8 +156,3 @@ async def show_admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎫 عدد الأكواد: {codes_count}",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
-def get_main_menu(user_id):
-    """استيراد دالة get_main_menu من main_menu لتجنب التكرار"""
-    from handlers.main_menu import get_main_menu as _get_main_menu
-    return _get_main_menu(user_id)
