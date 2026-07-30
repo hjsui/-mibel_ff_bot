@@ -9,7 +9,6 @@ from typing import Optional, Dict, Any
 
 logging.basicConfig(level=logging.INFO)
 
-# ========== دوال مساعدة ==========
 def _log_response(name, resp):
     try:
         logging.info(f"[{name}] Status: {resp.status_code}")
@@ -41,7 +40,6 @@ def _decode_jwt(token: str) -> Optional[Dict]:
     except:
         return None
 
-# ========== دوال تحويل EAT ==========
 def convert_eat(eat_url, action="eat_to_jwt"):
     url = "https://www.fftools.site/api/verify-token"
     headers = {
@@ -60,7 +58,6 @@ def convert_eat(eat_url, action="eat_to_jwt"):
     except Exception as e:
         return {"success": False, "error": str(e)}
 
-# ========== دوال الخدمات الأساسية ==========
 def check_bind_info(access_token: str) -> Optional[Dict]:
     url = "https://100067.connect.garena.com/game/account_security/bind:get_bind_info"
     payload = {'app_id': "100067", 'access_token': access_token}
@@ -230,7 +227,6 @@ def revoke_token(access_token: str) -> bool:
     except:
         return False
 
-# ========== دوال تنسيق النتائج ==========
 def format_recovery_info(bind_data: dict) -> dict:
     current_email = bind_data.get("email", "")
     pending_email = bind_data.get("email_to_be", "")
