@@ -4,10 +4,10 @@
 BOT_TOKEN = "8982371296:AAGPcgpIDtp0gScSz1YZ_zmXxLhzxcPGoT4"
 
 # قائمة الأدمن (user_id)
-ADMIN_IDS = [8530485909]  # أضف معرفات الأدمن هنا
+ADMIN_IDS = [8530485909]
 
 # إعدادات الدفع (محاكاة)
-PAYMENT_WALLET = "0x..."  # محفظة العملات (اختياري)
+PAYMENT_WALLET = "0x..."
 PAYMENT_CURRENCY = "USDT"
 
 # باقات الاشتراك
