@@ -24,7 +24,7 @@ TEXTS = {
         'choose': "📌 يرجى اختيار خدمة من خلال الأزرار التالية:",
         
         # ========== إدارة الحسابات ==========
-        'enter_eat': "📥 **إضافة حساب جديد**\n\nلإضافة حساب، أرسل رابط التوكن (EAT) الخاص بالحساب.\n\n📌 **مثال:**\n`https://ticket.kiosgamer.co.id/?eat=...`\n\n⚠️ تأكد من أن الرابط يحتوي على `eat=` ويبدأ بـ `https://ticket.kiosgamer.co.id/`",
+        'enter_eat': "📥 **إضافة حساب جديد**\n\nلإضافة حساب، أرسل رابط التوكن (EAT) الخاص بالحساب.\n\n📌 **مثال:**\n`https://discstore.recargajogo.com.br/?eat=...`\n\n⚠️ تأكد من أن الرابط يحتوي على `eat=` ويبدأ بـ `https://discstore.recargajogo.com.br/`",
         
         'account_linked': "✅ **تم ربط الحساب بنجاح!**\n\n👤 **الاسم:** {name}\n🆔 **الأيدي:** {id}\n🌍 **السيرفر:** {region}",
         
@@ -210,7 +210,7 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'choose': "📌 Please choose a service from the buttons below:",
         
         # ========== Account Management ==========
-        'enter_eat': "📥 **Add New Account**\n\nTo add an account, send the EAT link of the account.\n\n📌 **Example:**\n`https://ticket.kiosgamer.co.id/?eat=...`\n\n⚠️ Make sure the link contains `eat=` and starts with `https://ticket.kiosgamer.co.id/`",
+        'enter_eat': "📥 **Add New Account**\n\nTo add an account, send the EAT link of the account.\n\n📌 **Example:**\n`https://discstore.recargajogo.com.br/?eat=...`\n\n⚠️ Make sure the link contains `eat=` and starts with `https://discstore.recargajogo.com.br/`",
         
         'account_linked': "✅ **Account linked successfully!**\n\n👤 **Name:** {name}\n🆔 **ID:** {id}\n🌍 **Server:** {region}",
         
