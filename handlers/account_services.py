@@ -8,9 +8,8 @@ from utils import (
 )
 from garena_api import (
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
-    verify_identity_sec, create_bind_request, cancel_request,
-    revoke_token, create_rebind_request, create_unbind_request,
-    format_recovery_info, format_platforms, verify_identity_otp
+    verify_identity_otp, create_bind_request, cancel_request,
+    revoke_token, create_rebind_request, create_unbind_request
 )
 from external_apis import (
     visit_account, change_nickname, guild_action,
