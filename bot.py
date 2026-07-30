@@ -153,7 +153,6 @@ def main():
     app.add_error_handler(error_handler)
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("meow", admin_panel))
-    # ✅ تم إضافة manage_account لالتقاط زر "تحكم في الحساب"
     app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
     app.add_handler(CallbackQueryHandler(handle_account_control, pattern='^account_control_'))
