@@ -97,7 +97,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج الأزرار الرئيسي - مع حل لمشكلة Query is too old"""
+    """
+    معالج الأزرار الرئيسي - يعالج الأزرار المحلية ويمرر الباقي إلى bot.py
+    """
     query = update.callback_query
     user_id = update.effective_user.id
     data = query.data
@@ -108,7 +110,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass  # تجاهل الخطأ إذا كان الاستعلام قديماً جداً
 
-    # معالجة الأزرار التي يتم التعامل معها محلياً في هذا الملف
+    # ===== الأزرار التي يتم التعامل معها محلياً في هذا الملف =====
+    
+    # 1. العودة إلى القائمة الرئيسية
     if data == 'main_menu':
         await query.edit_message_text(
             get_text(user_id, 'choose'),
@@ -116,20 +120,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 2. إضافة حساب - يعرض رسالة لإدخال EAT
     if data == 'add_account':
-        # استخدام النص من texts.py ليكون مترجماً وجميلاً
         await query.edit_message_text(
             get_text(user_id, 'enter_eat'),
             reply_markup=get_back_button(user_id, 'main_menu')
         )
         return
 
-    if data == 'my_accounts':
-        # سيتم التعامل معها في bot.py، لكننا نمررها
-        # نضع إعادة توجيه إلى المعالج العام (bot.py)
-        # لكننا سنتركها تمر لأن bot.py سيلتقطها
-        pass
-
+    # 3. الشروط والأحكام
     if data == 'terms':
         await query.edit_message_text(
             get_text(user_id, 'terms_text'),
@@ -137,6 +136,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 4. تغيير اللغة - يعرض أزرار اللغة
     if data == 'change_lang':
         await query.edit_message_text(
             get_text(user_id, 'choose_lang'),
@@ -144,6 +144,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 5. اختيار اللغة (العربية/الإنجليزية)
     if data.startswith('lang_'):
         lang = data.split('_')[1]
         user_data_store[user_id]['lang'] = lang
@@ -154,12 +155,28 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ملاحظة: الأزرار الأخرى (manage_account, control_, recovery_, links_, ...)
-    # سيتم التعامل معها بواسطة المعالجات الأخرى في bot.py
-    # لذلك لا نتعامل معها هنا، بل نتركها تمر.
-    # لكن إذا وصلنا هنا دون معالجة، نعطي رسالة افتراضية.
-    # في الوضع الطبيعي، لن يصل到这里 لأن bot.py سيلتقطها.
-    await query.edit_message_text(
-        "⚠️ جارٍ تحميل الخدمة...",
-        reply_markup=get_back_button(user_id, 'main_menu')
-    )
+    # ===== الأزرار التي يتم تمريرها إلى bot.py =====
+    # لا نتعامل معها هنا، بل نتركها تمر إلى المعالجات الأخرى في bot.py
+    # الأزرار التالية سيتم التقاطها بواسطة bot.py:
+    # - manage_account (تحكم في الحساب)
+    # - my_accounts (حساباتي)
+    # - control_* (اختيار حساب)
+    # - recovery_* (كشف الاستعادة)
+    # - links_* (كشف روابط)
+    # - tryotp_* (تجربة رمز الأمان)
+    # - addrec_* (إضافة استعادة)
+    # - dellinks_* (حذف روابط ثانوية)
+    # - burn_* (حرق التوكيل)
+    # - spam_* (سبام تسجيل دخول)
+    # - visit_* (زيارة حساب)
+    # - nick_* (تغيير الاسم)
+    # - guild_* (القبيلة)
+    # - friend_* (طلب صداقة)
+    # - ban_* (فحص الحظر)
+    # - events_* (الأحداث)
+    # - wishlist_* (قائمة الرغبات)
+    # - del_* (حذف حساب)
+    
+    # ✅ إذا وصلنا إلى هنا ولم نتعرف على الزر، نتركه يمر (لا نعرض رسالة)
+    # هذا يسمح لـ bot.py بالتقاط الأزرار الأخرى
+    return
