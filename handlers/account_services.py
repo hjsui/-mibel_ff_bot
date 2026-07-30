@@ -19,7 +19,6 @@ from handlers.main_menu import get_back_button, get_main_menu, get_account_contr
 
 # ========== إضافة حساب ==========
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إضافة حساب جديد عبر EAT"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     
@@ -57,7 +56,6 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ========== تحكم في الحساب ==========
 async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض قائمة الحسابات للتحكم"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -87,7 +85,6 @@ async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TY
 
 # ========== حساباتي ==========
 async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض الحسابات المحفوظة مع إمكانية الحذف"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -117,7 +114,6 @@ async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ========== اختيار حساب ==========
 async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """اختيار حساب معين للتحكم"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -133,7 +129,6 @@ async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT
         )
         return
     
-    # ✅ استخراج معلومات إضافية باستخدام decode_jwt
     jwt_data = convert_eat(account['eat'], "eat_to_jwt")
     jwt_payload = decode_jwt(jwt_data.get("result_token", ""))
     emulator = "نعم 🖥️" if jwt_payload.get("is_emulator") else "لا 📱"
@@ -152,7 +147,6 @@ async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT
     )
 
 async def handle_account_control(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """العودة إلى لوحة تحكم الحساب"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -187,7 +181,6 @@ async def handle_account_control(update: Update, context: ContextTypes.DEFAULT_T
 
 # ========== حذف حساب ==========
 async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """حذف حساب"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -204,9 +197,8 @@ async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=get_main_menu(user_id)
         )
 
-# ========== كشف الاستعادة ==========
+# ========== كشف الاستعادة (مبسط) ==========
 async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """كشف الاستعادة"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -228,16 +220,12 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     
     result = check_bind_info(access_token)
-    if result:
-        formatted = format_recovery_info(result)
-        msg = get_text(
-            user_id, 'recovery_result',
-            current_email=formatted['current_email'],
-            pending_email=formatted['pending_email'],
-            countdown=formatted['countdown'],
-            status=formatted['status'],
-            explanation=formatted['explanation']
-        )
+    if result and result.get("data"):
+        data = result.get("data", {})
+        email = data.get("email", "غير موجود")
+        email_to_be = data.get("email_to_be", "لا يوجد")
+        countdown = data.get("request_exec_countdown", 0)
+        msg = f"🔐 **تفاصيل استعادة الحساب**\n\n📧 البريد الحالي: `{email}`\n📨 البريد المعلق: `{email_to_be}`\n⏳ الوقت المتبقي: `{countdown}` ثانية"
     else:
         msg = get_text(user_id, 'api_error')
     
@@ -246,9 +234,8 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
-# ========== كشف روابط ==========
+# ========== كشف روابط (مبسط) ==========
 async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """كشف روابط"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -275,9 +262,18 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     result = get_linked_platforms(access_token)
-    if result:
-        platforms = format_platforms(result)
-        msg = get_text(user_id, 'links_result', platforms=platforms)
+    if result and result.get("data"):
+        platforms = result.get("data", {}).get("bounded_accounts", [])
+        if platforms:
+            text = "🔗 **المنصات المرتبطة**\n\n"
+            for p in platforms:
+                platform = p.get("platform", "غير معروف")
+                user_info = p.get("user_info", {})
+                name = user_info.get("nickname", user_info.get("email", "غير معروف"))
+                text += f"• {platform}: `{name}`\n"
+            msg = text
+        else:
+            msg = "لا توجد روابط مرتبطة."
     else:
         msg = get_text(user_id, 'api_error')
     
@@ -288,7 +284,6 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== بوت رمز الأمان ==========
 async def handle_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بوت رمز الأمان (إرسال OTP)"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -305,7 +300,6 @@ async def handle_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== تجربة رمز الأمان ==========
 async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تجربة رمز الأمان (التحقق من OTP)"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -322,7 +316,6 @@ async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== إضافة استعادة ==========
 async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إضافة/تغيير استعادة"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -339,7 +332,6 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 # ========== حذف روابط ثانوية ==========
 async def handle_delete_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """حذف روابط ثانوية (إلغاء طلب معلق)"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -372,7 +364,6 @@ async def handle_delete_links(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 # ========== حرق التوكيل ==========
 async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """حرق التوكيل (تسجيل الخروج)"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -405,7 +396,6 @@ async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== سبام تسجيل دخول ==========
 async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """سبام تسجيل دخول (تجريبي)"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -426,7 +416,6 @@ async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== معالجات إدخال النصوص ==========
 async def handle_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال الإيميل"""
     user_id = update.effective_user.id
     email = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -474,7 +463,6 @@ async def handle_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data['action'] = 'waiting_otp'
 
 async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال OTP"""
     user_id = update.effective_user.id
     otp = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -531,7 +519,6 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['action'] = None
 
 async def handle_secondary_password_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال كلمة المرور الثانوية"""
     user_id = update.effective_user.id
     sec_code = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -548,4 +535,31 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
     if not account:
         await update.message.reply_text("⚠️ الحساب غير موجود.")
         context.user_data['action'] = None
-        returupdate.effective_user.id
+        return
+    
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    
+    # استخدام verify_identity_otp بدلاً من verify_identity_sec
+    identity_token = verify_identity_otp(access_token, email, sec_code)
+    
+    if identity_token:
+        if verifier_token:
+            if create_rebind_request(identity_token, verifier_token, access_token, email):
+                await update.message.reply_text(get_text(user_id, 'email_changed', old=email, new=email))
+            else:
+                await update.message.reply_text(get_text(user_id, 'operation_failed', error="فشل إنشاء طلب الربط"))
+        else:
+            await update.message.reply_text(get_text(user_id, 'operation_failed', error="لم يتم الحصول على التوكنات المطلوبة"))
+    else:
+        await update.message.reply_text(get_text(user_id, 'operation_failed', error="فشل التحقق من كلمة المرور الثانوية"))
+    
+    context.user_data['action'] = None
+
+async def handle_unbind_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    # سيتم تنفيذها لاحقاً عند الحاجة
+    pass
