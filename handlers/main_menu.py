@@ -7,7 +7,6 @@ from database import db
 import datetime
 
 def get_main_menu(user_id):
-    """القائمة الرئيسية بالترتيب المطلوب"""
     keyboard = [
         [
             InlineKeyboardButton("🎮 تحكم في الحساب", callback_data='manage_account'),
@@ -24,7 +23,6 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب بالترتيب المطلوب"""
     acc_id = account['id']
     keyboard = [
         [
@@ -95,9 +93,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    معالج الأزرار الرئيسي - يعالج الأزرار المحلية ويمرر الباقي إلى bot.py
-    """
     query = update.callback_query
     user_id = update.effective_user.id
     data = query.data
@@ -123,7 +118,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ✅ تحكم في الحساب - عرض قائمة الحسابات
+    # ✅ تحكم في الحساب
     if data == 'manage_account':
         accounts = get_user_accounts(user_id)
         if not accounts:
@@ -142,7 +137,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ✅ حساباتي - عرض الحسابات مع إمكانية الحذف
+    # ✅ حساباتي
     if data == 'my_accounts':
         accounts = get_user_accounts(user_id)
         if not accounts:
@@ -185,5 +180,5 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # الأزرار الأخرى (control_*, recovery_*, links_*, etc.) تمر إلى bot.py
+    # الأزرار الأخرى تمر إلى bot.py
     return
