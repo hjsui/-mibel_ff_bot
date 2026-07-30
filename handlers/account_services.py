@@ -3,8 +3,14 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from utils import (
-    get_text, get_user_accounts, get_access_token_for_account, 
-    user_data_store, convert_eat, add_account, delete_account
+    get_text, get_user_accounts, get_access_token_for_account,
+    user_data_store, convert_eat, add_account, delete_account, decode_jwt
+)
+from garena_api import (
+    check_bind_info, get_linked_platforms, send_otp, verify_otp,
+    verify_identity_sec, create_bind_request, cancel_request,
+    revoke_token, create_rebind_request, create_unbind_request,
+    format_recovery_info, format_platforms, verify_identity_otp
 )
 from external_apis import (
     visit_account, change_nickname, guild_action,
@@ -18,7 +24,6 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     user_id = update.effective_user.id
     text = update.message.text.strip()
     
-    # التحقق من وجود EAT في النص
     if 'ticket.kiosgamer.co.id' not in text and 'eat=' not in text:
         await update.message.reply_text(
             "⚠️ أرسل رابط التوكن (EAT) الصحيح.\nمثال: https://ticket.kiosgamer.co.id/?eat=...",
@@ -26,10 +31,8 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
     
-    # ✅ رسالة انتظار
     await update.message.reply_text("⏳ جاري تحويل التوكن... قد يستغرق هذا بضع ثوانٍ.")
     
-    # تحويل EAT
     jwt_data = convert_eat(text, "eat_to_jwt")
     access_data = convert_eat(text, "eat_to_access")
     
@@ -131,7 +134,7 @@ async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT
         )
         return
     
-    # استخراج معلومات إضافية
+    # ✅ استخراج معلومات إضافية باستخدام decode_jwt
     jwt_data = convert_eat(account['eat'], "eat_to_jwt")
     jwt_payload = decode_jwt(jwt_data.get("result_token", ""))
     emulator = "نعم 🖥️" if jwt_payload.get("is_emulator") else "لا 📱"
@@ -546,34 +549,4 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
     if not account:
         await update.message.reply_text("⚠️ الحساب غير موجود.")
         context.user_data['action'] = None
-        return
-    
-    access_token = get_access_token_for_account(account)
-    if not access_token:
-        await update.message.reply_text(get_text(user_id, 'no_access_token'))
-        context.user_data['action'] = None
-        return
-    
-    from garena_api import verify_identity_sec
-    result = verify_identity_sec(access_token, email, sec_code)
-    
-    if result.get('success'):
-        identity_token = result.get('identity_token')
-        if identity_token and verifier_token:
-            if create_rebind_request(identity_token, verifier_token, access_token, email):
-                await update.message.reply_text(get_text(user_id, 'email_changed', old=email, new=email))
-            else:
-                await update.message.reply_text(get_text(user_id, 'operation_failed', error="فشل إنشاء طلب الربط"))
-        else:
-            await update.message.reply_text(get_text(user_id, 'operation_failed', error="لم يتم الحصول على التوكنات المطلوبة"))
-    else:
-        error = result.get('error', 'خطأ غير معروف')
-        await update.message.reply_text(get_text(user_id, 'operation_failed', error=error))
-    
-    context.user_data['action'] = None
-
-async def handle_unbind_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إلغاء ربط الاستعادة"""
-    user_id = update.effective_user.id
-    # سيتم تنفيذها لاحقاً عند الحاجة
-    pass
+        returupdate.effective_user.id
