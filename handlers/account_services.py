@@ -8,7 +8,7 @@ from utils import (
 )
 from garena_api import (
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
-    verify_identity_otp, create_bind_request, cancel_request,
+    verify_identity_otp, cancel_request,
     revoke_token, create_rebind_request, create_unbind_request
 )
 from external_apis import (
@@ -544,6 +544,7 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
         return
     
     # استخدام verify_identity_otp بدلاً من verify_identity_sec
+    identity_sec
     identity_token = verify_identity_otp(access_token, email, sec_code)
     
     if identity_token:
