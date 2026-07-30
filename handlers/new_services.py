@@ -105,8 +105,7 @@ async def handle_nickname_input(update: Update, context: ContextTypes.DEFAULT_TY
         await wait_msg.edit_text("⚠️ حدث خطأ غير متوقع.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     context.user_data['action'] = None
 
-# ========== باقي الخدمات ==========
-# (نفس النمط مع معالجة الأخطاء)
+# ========== إدارة القبيلة ==========
 async def handle_guild_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -171,6 +170,7 @@ async def handle_clan_id_input(update: Update, context: ContextTypes.DEFAULT_TYP
         await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     context.user_data['action'] = None
 
+# ========== طلب صداقة ==========
 async def handle_friend_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -216,6 +216,7 @@ async def handle_friend_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         await wait_msg.edit_text("⚠️ حدث خطأ غير متوقع.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     context.user_data['action'] = None
 
+# ========== فحص الحظر ==========
 async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -252,6 +253,7 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await wait_msg.edit_text("⚠️ حدث خطأ غير متوقع.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ========== أحداث اللعبة ==========
 async def handle_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -286,6 +288,7 @@ async def handle_events(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await wait_msg.edit_text("⚠️ حدث خطأ غير متوقع.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ========== قائمة الرغبات ==========
 async def handle_wishlist(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
