@@ -37,12 +37,10 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """لوحة تحكم الأدمن - للمطور فقط"""
     user_id = update.effective_user.id
     
-    # التحقق من أن المستخدم هو المطور
     if str(user_id) != "8530485909":
         await update.message.reply_text("⛔ هذا الأمر مخصص للأدمن فقط.")
         return
     
-    # عرض لوحة التحكم
     keyboard = [
         [InlineKeyboardButton("👥 قائمة المستخدمين", callback_data='admin_users')],
         [InlineKeyboardButton("🎫 إدارة الأكواد", callback_data='admin_codes')],
@@ -51,8 +49,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     
     await update.message.reply_text(
-        "⚙️ **لوحة تحكم الأدمن**\n\n"
-        "اختر الإجراء المطلوب:",
+        "⚙️ **لوحة تحكم الأدمن**\n\nاختر الإجراء المطلوب:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -70,7 +67,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     
     if data == 'admin_users':
-        # عرض قائمة المستخدمين
         users = db.get_all_users()
         if not users:
             await query.edit_message_text("📭 لا يوجد مستخدمين مسجلين.")
@@ -85,7 +81,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=get_back_button(user_id, 'admin_panel'))
     
     elif data == 'admin_codes':
-        # عرض الأكواد
         codes = db.get_all_codes()
         if not codes:
             await query.edit_message_text("📭 لا توجد أكواد.")
@@ -99,7 +94,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(text, reply_markup=get_back_button(user_id, 'admin_panel'))
     
     elif data == 'admin_gen_code':
-        # توليد كود جديد
         import random
         import string
         new_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=12))
@@ -112,13 +106,11 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         save_db(db.data)
         
         await query.edit_message_text(
-            f"✅ تم توليد كود جديد:\n\n`{new_code}`\n\n"
-            "يمكن للمستخدمين استخدامه عبر زر 'استخدام كود'.",
+            f"✅ تم توليد كود جديد:\n\n`{new_code}`\n\nيمكن للمستخدمين استخدامه عبر زر 'استخدام كود'.",
             reply_markup=get_back_button(user_id, 'admin_panel')
         )
     
     elif data == 'admin_panel':
-        # العودة للوحة الأدمن
         keyboard = [
             [InlineKeyboardButton("👥 قائمة المستخدمين", callback_data='admin_users')],
             [InlineKeyboardButton("🎫 إدارة الأكواد", callback_data='admin_codes')],
@@ -159,7 +151,6 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ========== الوظيفة الرئيسية ==========
 def main():
     """تشغيل البوت"""
-    # إنشاء التطبيق
     app = Application.builder().token(BOT_TOKEN).build()
     
     # ===== الأوامر =====
@@ -167,7 +158,7 @@ def main():
     app.add_handler(CommandHandler("meow", admin_panel))
     
     # ===== أزرار القائمة الرئيسية (يتم التعامل معها في main_menu.py) =====
-    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
+    app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en)$'))
     
     # ===== معالجات الحسابات =====
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
@@ -207,7 +198,6 @@ def main():
     # ===== معالج النصوص =====
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_input))
     
-    # تشغيل البوت
     print("🤖 البوت شغال... اضغط Ctrl+C لإيقافه.")
     app.run_polling()
 
