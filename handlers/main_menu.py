@@ -2,7 +2,7 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from utils import get_text, user_data_store
+from utils import get_text, user_data_store, get_user_accounts
 from database import db
 import datetime
 
@@ -77,7 +77,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_data_store:
         user_data_store[user_id] = {'lang': 'ar', 'accounts': []}
     
-    # التحقق من الاشتراك
     if not db.is_subscribed(user_id):
         msg = get_text(user_id, 'subscribe_required', bot_name="Befek Account Tool")
         keyboard = [
@@ -90,7 +89,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
         return
     
-    # عرض القائمة الرئيسية للمشتركين
     await update.message.reply_text(
         get_text(user_id, 'welcome', bot_name="Befek Account Tool"),
         reply_markup=get_main_menu(user_id)
@@ -104,15 +102,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     data = query.data
 
-    # ✅ الخطوة الذهبية: استدعاء answer() فوراً لتجنب انتهاء صلاحية الاستعلام
     try:
         await query.answer()
     except Exception:
-        pass  # تجاهل الخطأ إذا كان الاستعلام قديماً جداً
+        pass
 
-    # ===== الأزرار التي يتم التعامل معها محلياً في هذا الملف =====
+    # ===== الأزرار التي يتم التعامل معها محلياً =====
     
-    # 1. العودة إلى القائمة الرئيسية
     if data == 'main_menu':
         await query.edit_message_text(
             get_text(user_id, 'choose'),
@@ -120,7 +116,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 2. إضافة حساب - يعرض رسالة لإدخال EAT
     if data == 'add_account':
         await query.edit_message_text(
             get_text(user_id, 'enter_eat'),
@@ -128,7 +123,44 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 3. الشروط والأحكام
+    # ✅ تحكم في الحساب - عرض قائمة الحسابات
+    if data == 'manage_account':
+        accounts = get_user_accounts(user_id)
+        if not accounts:
+            await query.edit_message_text(
+                get_text(user_id, 'no_accounts'),
+                reply_markup=get_main_menu(user_id)
+            )
+            return
+        keyboard = []
+        for acc in accounts:
+            keyboard.append([InlineKeyboardButton(f"{acc['name']} | {acc['region']}", callback_data=f'control_{acc["id"]}')])
+        keyboard.append([InlineKeyboardButton(get_text(user_id, 'back'), callback_data='main_menu')])
+        await query.edit_message_text(
+            get_text(user_id, 'select_account'),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    # ✅ حساباتي - عرض الحسابات مع إمكانية الحذف
+    if data == 'my_accounts':
+        accounts = get_user_accounts(user_id)
+        if not accounts:
+            await query.edit_message_text(
+                get_text(user_id, 'no_accounts'),
+                reply_markup=get_main_menu(user_id)
+            )
+            return
+        keyboard = []
+        for acc in accounts:
+            keyboard.append([InlineKeyboardButton(f"🗑️ {acc['name']} | {acc['region']}", callback_data=f'del_{acc["id"]}')])
+        keyboard.append([InlineKeyboardButton(get_text(user_id, 'back'), callback_data='main_menu')])
+        await query.edit_message_text(
+            get_text(user_id, 'select_delete'),
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
     if data == 'terms':
         await query.edit_message_text(
             get_text(user_id, 'terms_text'),
@@ -136,7 +168,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 4. تغيير اللغة - يعرض أزرار اللغة
     if data == 'change_lang':
         await query.edit_message_text(
             get_text(user_id, 'choose_lang'),
@@ -144,7 +175,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 5. اختيار اللغة (العربية/الإنجليزية)
     if data.startswith('lang_'):
         lang = data.split('_')[1]
         user_data_store[user_id]['lang'] = lang
@@ -155,28 +185,5 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ===== الأزرار التي يتم تمريرها إلى bot.py =====
-    # لا نتعامل معها هنا، بل نتركها تمر إلى المعالجات الأخرى في bot.py
-    # الأزرار التالية سيتم التقاطها بواسطة bot.py:
-    # - manage_account (تحكم في الحساب)
-    # - my_accounts (حساباتي)
-    # - control_* (اختيار حساب)
-    # - recovery_* (كشف الاستعادة)
-    # - links_* (كشف روابط)
-    # - tryotp_* (تجربة رمز الأمان)
-    # - addrec_* (إضافة استعادة)
-    # - dellinks_* (حذف روابط ثانوية)
-    # - burn_* (حرق التوكيل)
-    # - spam_* (سبام تسجيل دخول)
-    # - visit_* (زيارة حساب)
-    # - nick_* (تغيير الاسم)
-    # - guild_* (القبيلة)
-    # - friend_* (طلب صداقة)
-    # - ban_* (فحص الحظر)
-    # - events_* (الأحداث)
-    # - wishlist_* (قائمة الرغبات)
-    # - del_* (حذف حساب)
-    
-    # ✅ إذا وصلنا إلى هنا ولم نتعرف على الزر، نتركه يمر (لا نعرض رسالة)
-    # هذا يسمح لـ bot.py بالتقاط الأزرار الأخرى
+    # الأزرار الأخرى (control_*, recovery_*, links_*, etc.) تمر إلى bot.py
     return
