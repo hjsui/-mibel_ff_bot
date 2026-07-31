@@ -13,13 +13,15 @@ from handlers.account_services import (
     # الخدمات الأساسية
     handle_add_account, handle_manage_account, handle_my_accounts,
     handle_recovery, handle_links, handle_otp, handle_try_otp,
-    handle_add_recovery, handle_delete_links, handle_burn_token,
+    handle_add_recovery, handle_burn_token,
     handle_spam_login, handle_account_selection, handle_account_control,
     handle_delete_account, handle_otp_input, handle_email_input,
     handle_secondary_password_input, handle_unbind_input,
-    # الخدمات الجديدة
-    handle_change_bind, handle_change_bind_otp_input, handle_change_bind_sec_input,
-    handle_unbind, handle_unbind_otp_input, handle_unbind_sec_input,
+    # الخدمات الجديدة (المصححة)
+    handle_change_bind_otp, handle_change_bind_otp_input,
+    handle_change_bind_sec, handle_change_bind_sec_input,
+    handle_unbind_otp, handle_unbind_otp_input,
+    handle_unbind_sec, handle_unbind_sec_input,
     handle_cancel_bind, handle_login_history, handle_bound_accounts_detailed,
     handle_ban, handle_ban_start, handle_ban_stop
 )
@@ -183,26 +185,32 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_otp, pattern='^otp_'))
     app.add_handler(CallbackQueryHandler(handle_try_otp, pattern='^tryotp_'))
     app.add_handler(CallbackQueryHandler(handle_add_recovery, pattern='^addrec_'))
-    app.add_handler(CallbackQueryHandler(handle_delete_links, pattern='^dellinks_'))
     app.add_handler(CallbackQueryHandler(handle_burn_token, pattern='^burn_'))
     app.add_handler(CallbackQueryHandler(handle_spam_login, pattern='^spam_'))
     
-    # ===== معالجات الخدمات الجديدة (new_services) =====
-    app.add_handler(CallbackQueryHandler(handle_visit, pattern='^visit_'))
-    app.add_handler(CallbackQueryHandler(handle_nickname_start, pattern='^nick_'))
-    app.add_handler(CallbackQueryHandler(handle_guild_start, pattern='^guild_'))
-    app.add_handler(CallbackQueryHandler(handle_guild_action, pattern='^guild_(join|leave)_'))
+    # ===== الخدمات المتبقية (طلب صداقة وفحص الحظر) =====
     app.add_handler(CallbackQueryHandler(handle_friend_start, pattern='^friend_'))
     app.add_handler(CallbackQueryHandler(handle_ban_check, pattern='^bancheck_'))
-    app.add_handler(CallbackQueryHandler(handle_events, pattern='^events_'))
-    app.add_handler(CallbackQueryHandler(handle_wishlist, pattern='^wishlist_'))
     
-    # ===== الخدمات المتقدمة (تغيير البريد، إلغاء الربط، إلغاء الطلب، سجل الدخول، الروابط المفصلة، التبنيد) =====
-    app.add_handler(CallbackQueryHandler(handle_change_bind, pattern='^change_bind_'))
-    app.add_handler(CallbackQueryHandler(handle_unbind, pattern='^unbind_'))
+    # ===== الخدمات الجديدة (المصححة) =====
+    # تغيير البريد
+    app.add_handler(CallbackQueryHandler(handle_change_bind_otp, pattern='^change_bind_otp_'))
+    app.add_handler(CallbackQueryHandler(handle_change_bind_sec, pattern='^change_bind_sec_'))
+    
+    # إلغاء الربط
+    app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
+    app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
+    
+    # إلغاء طلب الربط
     app.add_handler(CallbackQueryHandler(handle_cancel_bind, pattern='^cancel_bind_'))
+    
+    # سجل الدخول
     app.add_handler(CallbackQueryHandler(handle_login_history, pattern='^login_history_'))
+    
+    # الروابط المفصلة
     app.add_handler(CallbackQueryHandler(handle_bound_accounts_detailed, pattern='^bound_accounts_'))
+    
+    # تبنيد الحساب
     app.add_handler(CallbackQueryHandler(handle_ban, pattern='^ban_'))
     app.add_handler(CallbackQueryHandler(handle_ban_start, pattern='^ban_start_'))
     app.add_handler(CallbackQueryHandler(handle_ban_stop, pattern='^ban_stop_'))
