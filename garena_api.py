@@ -8,21 +8,34 @@ import time
 import hashlib
 import threading
 import socket
+import urllib.parse
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-# استيراد ملفات Protobuf
+# استيراد ملفات Protobuf (اختياري)
 try:
     import MajorLoginReq_pb2 as mLpB
     import MajorLoginRes_pb2 as mLrPb
     import GetLoginDataRes_pb2 as gLdPb
+    PROTOBUF_AVAILABLE = True
 except ImportError:
-    print("⚠️ ملفات Protobuf غير موجودة. سيتم استخدام الدوال الأساسية فقط.")
+    PROTOBUF_AVAILABLE = False
     mLpB = None
     mLrPb = None
     gLdPb = None
+
+# استيراد ban_manager إذا كان موجوداً
+try:
+    from ban_manager import start_ban, stop_ban, is_ban_active, get_active_bans
+    BAN_MANAGER_AVAILABLE = True
+except ImportError:
+    BAN_MANAGER_AVAILABLE = False
+    start_ban = None
+    stop_ban = None
+    is_ban_active = None
+    get_active_bans = None
 
 logging.basicConfig(level=logging.INFO)
 
@@ -117,7 +130,6 @@ def get_nickname_from_eat(eat_url: str) -> str:
     """استخراج الاسم من رابط EAT"""
     try:
         if 'nickname=' in eat_url:
-            import urllib.parse
             parsed = urllib.parse.urlparse(eat_url)
             params = urllib.parse.parse_qs(parsed.query)
             return urllib.parse.unquote(params.get('nickname', [''])[0])
@@ -125,7 +137,7 @@ def get_nickname_from_eat(eat_url: str) -> str:
         pass
     return None
 
-# ========== دوال معلومات الربط ==========
+# ========== دوال معلومات الربط (الأساسية) ==========
 def check_bind_info(access_token: str) -> Optional[Dict]:
     """جلب معلومات الربط (كشف الاستعادة)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:get_bind_info"
@@ -159,7 +171,7 @@ def get_linked_platforms(access_token: str) -> Optional[Dict]:
     except:
         return None
 
-# ========== دوال إرسال OTP ==========
+# ========== دوال إرسال OTP والتحقق ==========
 def send_otp(access_token: str, email: str) -> bool:
     """إرسال OTP إلى البريد"""
     url = "https://100067.connect.garena.com/game/account_security/bind:send_otp"
@@ -360,7 +372,7 @@ def revoke_token(access_token: str) -> bool:
 # ========== دوال سجل تسجيل الدخول ==========
 def build_major_login(access_token: str, open_id: str, platform: int = 4) -> bytes:
     """بناء طلب MajorLogin باستخدام Protobuf"""
-    if not mLpB:
+    if not PROTOBUF_AVAILABLE or not mLpB:
         return None
     
     m = mLpB.MajorLogin()
@@ -427,11 +439,14 @@ def get_login_history(access_token: str, jwt_token: str = None) -> Dict:
     """جلب سجل تسجيل الدخول"""
     result = {"success": False, "records": [], "error": None}
     
+    if not PROTOBUF_AVAILABLE:
+        result["error"] = "ملفات Protobuf غير متوفرة"
+        return result
+    
     try:
         # محاولة الحصول على JWT إذا لم يتم توفيره
         if not jwt_token:
-            # محاولة تحويل access_token إلى JWT عبر MajorLogin
-            # (سيتم تنفيذها في دالة منفصلة)
+            # هنا يمكن إضافة منطق للحصول على JWT من access_token
             pass
         
         headers = {
@@ -455,7 +470,6 @@ def get_login_history(access_token: str, jwt_token: str = None) -> Dict:
         )
         
         if resp.status_code == 200:
-            # فك التشفير وتحليل البيانات
             try:
                 data = _decrypt(resp.content)
                 # تحليل Protobuf (سيتم تنفيذها لاحقاً)
@@ -509,41 +523,46 @@ def get_bound_accounts_detailed(access_token: str) -> Dict:
     
     return result
 
-# ========== دوال تبنيد الحساب ==========
-_ban_sessions = {}  # تخزين جلسات التبنيد
-
-def start_ban(access_token: str, account_id: str) -> Dict:
-    """بدء تبنيد الحساب"""
-    result = {"success": False, "error": None, "threads": []}
+# ========== دوال تبنيد الحساب (واجهة لـ ban_manager) ==========
+def start_ban_account(access_token: str) -> Dict:
+    """بدء تبنيد الحساب (واجهة)"""
+    if not BAN_MANAGER_AVAILABLE or not start_ban:
+        return {"success": False, "error": "مكتبة ban_manager غير متوفرة"}
     
     try:
-        # هنا سيتم تشغيل خيوط الاتصال المستمرة
-        # يعتمد على الكود الموجود في السكريبت
-        result["success"] = True
-        result["threads"] = []
+        result = start_ban(access_token)
+        return result
     except Exception as e:
-        result["error"] = str(e)
-    
-    return result
+        return {"success": False, "error": str(e)}
 
-def stop_ban(account_id: str) -> Dict:
-    """إيقاف تبنيد الحساب"""
-    result = {"success": False, "error": None}
+def stop_ban_account(account_id: str) -> Dict:
+    """إيقاف تبنيد الحساب (واجهة)"""
+    if not BAN_MANAGER_AVAILABLE or not stop_ban:
+        return {"success": False, "error": "مكتبة ban_manager غير متوفرة"}
     
     try:
-        if account_id in _ban_sessions:
-            # إيقاف جميع الخيوط
-            for thread in _ban_sessions[account_id]:
-                if thread.is_alive():
-                    thread.join(timeout=2)
-            del _ban_sessions[account_id]
-            result["success"] = True
-        else:
-            result["error"] = "لا توجد جلسة تبنيد لهذا الحساب"
+        result = stop_ban(account_id)
+        return result
     except Exception as e:
-        result["error"] = str(e)
-    
-    return result
+        return {"success": False, "error": str(e)}
+
+def is_ban_active_account(account_id: str) -> bool:
+    """التحقق من وجود جلسة تبنيد نشطة"""
+    if not BAN_MANAGER_AVAILABLE or not is_ban_active:
+        return False
+    try:
+        return is_ban_active(account_id)
+    except:
+        return False
+
+def get_active_bans_list() -> list:
+    """جلب قائمة الحسابات المفعل عليها التبنيد"""
+    if not BAN_MANAGER_AVAILABLE or not get_active_bans:
+        return []
+    try:
+        return get_active_bans()
+    except:
+        return []
 
 # ========== دوال تنسيق النتائج ==========
 def format_recovery_info(bind_data: dict) -> dict:
@@ -590,3 +609,28 @@ def format_platforms(platforms_data: dict) -> str:
         info = user_info.get('email') or user_info.get('nickname') or '—'
         lines.append(f"• **{platform_name}:** `{info}`")
     return "\n".join(lines)
+
+# ========== دوال مساعدة إضافية ==========
+def get_player_info(access_token: str) -> Dict:
+    """جلب معلومات اللاعب من التوكن"""
+    result = {"success": False, "nickname": None, "uid": None, "region": None}
+    
+    try:
+        url = f"https://api-otrss.garena.com/support/callback/?access_token={access_token}"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        }
+        
+        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
+        parsed = urllib.parse.urlparse(resp.url)
+        params = urllib.parse.parse_qs(parsed.query)
+        
+        if 'access_token' in params:
+            result["success"] = True
+            result["nickname"] = urllib.parse.unquote(params.get('nickname', [''])[0])
+            result["uid"] = params.get('account_id', [''])[0]
+            result["region"] = params.get('region', [''])[0]
+    except:
+        pass
+    
+    return result
