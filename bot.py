@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import logging
-import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler, ContextTypes
 
@@ -26,10 +25,7 @@ from handlers.account_services import (
     handle_ban, handle_ban_start, handle_ban_stop
 )
 from handlers.new_services import (
-    handle_visit, handle_nickname_start, handle_nickname_input,
-    handle_guild_start, handle_guild_action, handle_clan_id_input,
-    handle_friend_start, handle_friend_input, handle_ban as handle_ban_check,
-    handle_events, handle_wishlist
+    handle_friend_start, handle_friend_input, handle_ban as handle_ban_check
 )
 from handlers.auth_handlers import (
     handle_buy_now, handle_use_code, handle_services_explain,
@@ -145,10 +141,6 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_secondary_password_input(update, context)
     elif action == 'waiting_unbind_input':
         await handle_unbind_input(update, context)
-    elif action == 'waiting_new_nickname':
-        await handle_nickname_input(update, context)
-    elif action == 'waiting_clan_id':
-        await handle_clan_id_input(update, context)
     elif action == 'waiting_friend_uid':
         await handle_friend_input(update, context)
     elif action == 'waiting_code':
@@ -188,29 +180,18 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_burn_token, pattern='^burn_'))
     app.add_handler(CallbackQueryHandler(handle_spam_login, pattern='^spam_'))
     
-    # ===== الخدمات المتبقية (طلب صداقة وفحص الحظر) =====
+    # ===== الخدمات المتبقية =====
     app.add_handler(CallbackQueryHandler(handle_friend_start, pattern='^friend_'))
     app.add_handler(CallbackQueryHandler(handle_ban_check, pattern='^bancheck_'))
     
     # ===== الخدمات الجديدة (المصححة) =====
-    # تغيير البريد
     app.add_handler(CallbackQueryHandler(handle_change_bind_otp, pattern='^change_bind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_change_bind_sec, pattern='^change_bind_sec_'))
-    
-    # إلغاء الربط
     app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
-    
-    # إلغاء طلب الربط
     app.add_handler(CallbackQueryHandler(handle_cancel_bind, pattern='^cancel_bind_'))
-    
-    # سجل الدخول
     app.add_handler(CallbackQueryHandler(handle_login_history, pattern='^login_history_'))
-    
-    # الروابط المفصلة
     app.add_handler(CallbackQueryHandler(handle_bound_accounts_detailed, pattern='^bound_accounts_'))
-    
-    # تبنيد الحساب
     app.add_handler(CallbackQueryHandler(handle_ban, pattern='^ban_'))
     app.add_handler(CallbackQueryHandler(handle_ban_start, pattern='^ban_start_'))
     app.add_handler(CallbackQueryHandler(handle_ban_stop, pattern='^ban_stop_'))
