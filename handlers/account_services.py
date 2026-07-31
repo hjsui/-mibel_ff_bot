@@ -19,6 +19,12 @@ from garena_api import (
 from external_apis import friend_request
 from handlers.main_menu import get_back_button, get_main_menu, get_account_controls
 
+# ========== دالة مساعدة لاستخراج account_id ==========
+def _extract_account_id(callback_data: str) -> str:
+    """استخراج account_id من callback_data بغض النظر عن عدد الشرطات"""
+    parts = callback_data.split('_')
+    return parts[-1]  # نأخذ الجزء الأخير دائماً
+
 # ========== إضافة حساب ==========
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -126,8 +132,7 @@ async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     
-    # ✅ تصحيح استخراج account_id
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # control_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     
@@ -160,7 +165,7 @@ async def handle_account_control(update: Update, context: ContextTypes.DEFAULT_T
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # account_control_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     
@@ -194,7 +199,7 @@ async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TY
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # del_123
     if delete_account(user_id, acc_id):
         await query.edit_message_text(
             get_text(user_id, 'account_deleted'),
@@ -212,7 +217,7 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # recovery_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     
@@ -264,7 +269,7 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # links_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     
@@ -308,7 +313,7 @@ async def handle_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # otp_123
     context.user_data['action'] = 'waiting_email'
     context.user_data['acc_id'] = acc_id
     context.user_data['operation'] = 'send_otp'
@@ -322,7 +327,7 @@ async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # tryotp_123
     context.user_data['action'] = 'waiting_email'
     context.user_data['acc_id'] = acc_id
     context.user_data['operation'] = 'verify_otp'
@@ -336,7 +341,7 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # addrec_123
     context.user_data['action'] = 'waiting_email'
     context.user_data['acc_id'] = acc_id
     context.user_data['operation'] = 'add_recovery'
@@ -345,13 +350,13 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
-# ========== حرق التوكيل (محسّن) ==========
+# ========== حرق التوكيل ==========
 async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # burn_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -369,10 +374,8 @@ async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     try:
-        # ✅ التحقق الفعلي من نجاح الحرق
         success = revoke_token(access_token)
         if success:
-            # حذف التوكن المخزن مؤقتاً
             account['access_token'] = None
             account['token_expiry'] = None
             await wait_msg.edit_text(
@@ -395,7 +398,7 @@ async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
-    acc_id = query.data.split('_')[1]
+    acc_id = query.data.split('_')[1]  # spam_123
     if context.user_data.get('spam_active', False):
         context.user_data['spam_active'] = False
         msg = get_text(user_id, 'spam_stopped')
@@ -404,16 +407,17 @@ async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = get_text(user_id, 'spam_started')
     await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ============================================================
 # ========== الخدمات الجديدة (المصححة) ==========
+# ============================================================
 
 # ---------- تغيير بريد الاستعادة (OTP) ----------
 async def handle_change_bind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء عملية تغيير البريد عبر OTP"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # change_bind_otp_123
     context.user_data['action'] = 'waiting_change_bind_otp'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'old_email'
@@ -425,12 +429,11 @@ async def handle_change_bind_otp(update: Update, context: ContextTypes.DEFAULT_T
 
 # ---------- تغيير بريد الاستعادة (كود أمان) ----------
 async def handle_change_bind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء عملية تغيير البريد عبر كود أمان"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # change_bind_sec_123
     context.user_data['action'] = 'waiting_change_bind_sec'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'old_email'
@@ -442,12 +445,11 @@ async def handle_change_bind_sec(update: Update, context: ContextTypes.DEFAULT_T
 
 # ---------- إلغاء ربط البريد (OTP) ----------
 async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء عملية إلغاء الربط عبر OTP"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # unbind_otp_123
     context.user_data['action'] = 'waiting_unbind_otp'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'email'
@@ -459,12 +461,11 @@ async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- إلغاء ربط البريد (كود أمان) ----------
 async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء عملية إلغاء الربط عبر كود أمان"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # unbind_sec_123
     context.user_data['action'] = 'waiting_unbind_sec'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'email'
@@ -480,7 +481,7 @@ async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE)
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # cancel_bind_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -520,7 +521,7 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # login_history_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -571,7 +572,7 @@ async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.D
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # bound_accounts_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -621,7 +622,7 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # ban_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -660,7 +661,7 @@ async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # ban_start_123
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
@@ -702,7 +703,7 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     
-    acc_id = query.data.split('_')[1]
+    acc_id = _extract_account_id(query.data)  # ban_stop_123
     
     wait_msg = await query.edit_message_text(
         "⏳ جاري إيقاف تبنيد الحساب...",
@@ -728,10 +729,11 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
 
+# ============================================================
 # ========== معالجات إدخال النصوص للخدمات الجديدة ==========
+# ============================================================
 
 async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تغيير البريد عبر OTP (خطوة بخطوة)"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -837,7 +839,6 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
         return
 
 async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة تغيير البريد عبر كود أمان"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -957,7 +958,6 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
         return
 
 async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إلغاء الربط عبر OTP"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -1028,7 +1028,6 @@ async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_
         return
 
 async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إلغاء الربط عبر كود أمان"""
     user_id = update.effective_user.id
     text = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -1100,7 +1099,6 @@ async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_
 
 # ========== معالجات إدخال النصوص الأساسية ==========
 async def handle_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال الإيميل"""
     user_id = update.effective_user.id
     email = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -1140,7 +1138,6 @@ async def handle_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data['action'] = 'waiting_otp'
 
 async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال OTP"""
     user_id = update.effective_user.id
     otp = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
@@ -1191,7 +1188,6 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['action'] = None
 
 async def handle_secondary_password_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالجة إدخال كلمة المرور الثانوية"""
     user_id = update.effective_user.id
     sec_code = update.message.text.strip()
     acc_id = context.user_data.get('acc_id')
