@@ -53,7 +53,6 @@ TEXTS = {
         'check_recovery': "🔍 كشف الإستعادة",
         'try_otp': "🧪 تجربة رمز الأمان",
         'add_change_recovery': "➕ إضافة/تغيير استعادة",
-        'delete_links': "🗑️ حذف روابط ثانوية",
         'burn_token': "🔥 حرق التوكيل",
         'spam_login': "📨 سبام تسجيل دخول",
         'permanent_ban': "🚫 بان دائم",
@@ -134,62 +133,8 @@ TEXTS = {
 👨‍💻 **المطور:** iloveyoustore
 📧 **البريد الإلكتروني:** bebekred@example.com""",
         
-        # ========== الخدمات الجديدة (مضافة) ==========
-        'visit_account': "👀 زيادة زيارات الحساب",
-        'change_nickname': "✏️ تغيير الاسم",
-        'guild_manage': "🏰 إدارة القبيلة",
-        'send_friend': "👥 طلب صداقة",
-        'check_ban': "🚫 فحص الحظر",
-        'events_info': "📅 أحداث اللعبة",
-        'wishlist': "⭐ قائمة الرغبات",
-
-        'visit_result': """👀 **معلومات الحساب**
-
-🆔 **الـ UID:** `{uid}`
-👤 **الاسم:** {nickname}
-🌍 **المنطقة:** {region}
-📊 **المستوى:** {level}
-❤️ **الإعجابات:** {likes}
-📈 **إجمالي الزيارات:** {total}
-{extra}""",
-
-        'nickname_changed': "✅ تم تغيير الاسم إلى `{new_name}` بنجاح!",
-        'enter_new_nickname': "✏️ أرسل الاسم الجديد الذي تريد تغييره:",
-        
-        'guild_joined': "✅ تم الانضمام إلى القبيلة `{clan_id}` بنجاح!",
-        'guild_left': "✅ تم مغادرة القبيلة `{clan_id}` بنجاح!",
-        'enter_clan_id': "🏰 أرسل معرف القبيلة (Clan ID):",
-        
-        'friend_sent': "✅ تم إرسال طلب صداقة إلى `{uid}` بنجاح!",
-        'friend_removed': "✅ تم إلغاء طلب الصداقة من `{uid}` بنجاح!",
-        'enter_target_uid': "👤 أرسل UID المستخدم المستهدف:",
-        
-        'ban_result': """🚫 **نتيجة فحص الحظر**
-
-📊 **الحالة:** {status}
-🆔 **الـ UID:** {uid}
-👤 **الاسم:** {name}
-🌍 **المنطقة:** {region}""",
-
-        'events_result': """📅 **أحداث اللعبة الحالية**
-
-{events}""",
-
-        'wishlist_result': """⭐ **قائمة الرغبات**
-
-{wishlist}""",
-
-        # ========== رسائل الأدمن ==========
-        'admin_panel': "⚙️ **لوحة تحكم الأدمن**",
-        'user_list': "👥 **قائمة المستخدمين**\n{users}",
-        'manage_codes': "🎫 **إدارة الأكواد**\n{code_list}",
-        'reseller_panel': "💼 **لوحة تحكم الوكيل**",
-        'points_balance': "⭐ **رصيد النقاط:** {points}",
-
         # ========== رسائل الخدمات الجديدة ==========
         'change_bind_method': "🔐 **تغيير بريد الاستعادة**\n\nاختر الطريقة المناسبة:",
-        'enter_old_email': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
-        'enter_new_email': "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
         'enter_security_code': "🔐 أرسل كود الأمان (6 أرقام):",
         'bind_changed': "✅ تم تغيير بريد الاستعادة بنجاح!",
         'unbind_success_v2': "✅ تم إلغاء ربط بريد الاستعادة بنجاح!",
@@ -206,18 +151,45 @@ TEXTS = {
         'ban_already_stopped': "ℹ️ لا توجد جلسة تبنيد نشطة لهذا الحساب.",
         'login_history_empty': "📋 **سجل تسجيل الدخول**\n\nلا توجد سجلات تسجيل دخول متاحة.",
         'bound_accounts_empty': "🔗 **المنصات المرتبطة**\n\nلا توجد منصات مرتبطة بهذا الحساب.",
+        
+        # ========== رسائل خطوات تغيير البريد (OTP) ==========
         'change_bind_otp_step1': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         'change_bind_otp_step2': "🔑 أرسل رمز OTP الذي وصلك إلى البريد القديم:",
         'change_bind_otp_step3': "📧 أرسل البريد الإلكتروني الجديد:",
         'change_bind_otp_step4': "🔑 أرسل رمز OTP الذي وصلك إلى البريد الجديد:",
-        'unbind_otp_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        'unbind_otp_step2': "🔑 أرسل رمز OTP الذي وصلك إلى البريد:",
-        'unbind_sec_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        'unbind_sec_step2': "🔐 أرسل كود الأمان (6 أرقام):",
+        
+        # ========== رسائل خطوات تغيير البريد (كود أمان) ==========
         'change_bind_sec_step1': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         'change_bind_sec_step2': "🔐 أرسل كود الأمان (6 أرقام):",
         'change_bind_sec_step3': "📧 أرسل البريد الإلكتروني الجديد:",
         'change_bind_sec_step4': "🔑 أرسل رمز OTP الذي وصلك إلى البريد الجديد:",
+        
+        # ========== رسائل خطوات إلغاء الربط (OTP) ==========
+        'unbind_otp_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
+        'unbind_otp_step2': "🔑 أرسل رمز OTP الذي وصلك إلى البريد:",
+        
+        # ========== رسائل خطوات إلغاء الربط (كود أمان) ==========
+        'unbind_sec_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
+        'unbind_sec_step2': "🔐 أرسل كود الأمان (6 أرقام):",
+        
+        # ========== رسائل الخدمات المتبقية ==========
+        'friend_sent': "✅ تم إرسال طلب صداقة إلى `{uid}` بنجاح!",
+        'friend_removed': "✅ تم إلغاء طلب الصداقة من `{uid}` بنجاح!",
+        'enter_target_uid': "👤 أرسل UID المستخدم المستهدف:",
+        
+        'ban_result': """🚫 **نتيجة فحص الحظر**
+
+📊 **الحالة:** {status}
+🆔 **الـ UID:** {uid}
+👤 **الاسم:** {name}
+🌍 **المنطقة:** {region}""",
+
+        # ========== رسائل الأدمن ==========
+        'admin_panel': "⚙️ **لوحة تحكم الأدمن**",
+        'user_list': "👥 **قائمة المستخدمين**\n{users}",
+        'manage_codes': "🎫 **إدارة الأكواد**\n{code_list}",
+        'reseller_panel': "💼 **لوحة تحكم الوكيل**",
+        'points_balance': "⭐ **رصيد النقاط:** {points}",
     },
     
     'en': {
@@ -272,7 +244,6 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'check_recovery': "🔍 Check Recovery",
         'try_otp': "🧪 Try OTP",
         'add_change_recovery': "➕ Add/Change Recovery",
-        'delete_links': "🗑️ Delete Secondary Links",
         'burn_token': "🔥 Burn Token",
         'spam_login': "📨 Spam Login",
         'permanent_ban': "🚫 Permanent Ban",
@@ -353,62 +324,8 @@ Please click (Buy Now) and complete payment to access bot services.""",
 👨‍💻 **Developer:** iloveyoustore
 📧 **Email:** bebekred@example.com""",
         
-        # ========== New Services ==========
-        'visit_account': "👀 Visit Account",
-        'change_nickname': "✏️ Change Nickname",
-        'guild_manage': "🏰 Guild Management",
-        'send_friend': "👥 Friend Request",
-        'check_ban': "🚫 Check Ban",
-        'events_info': "📅 Game Events",
-        'wishlist': "⭐ Wishlist",
-
-        'visit_result': """👀 **Account Information**
-
-🆔 **UID:** `{uid}`
-👤 **Name:** {nickname}
-🌍 **Region:** {region}
-📊 **Level:** {level}
-❤️ **Likes:** {likes}
-📈 **Total Visits:** {total}
-{extra}""",
-
-        'nickname_changed': "✅ Nickname changed to `{new_name}` successfully!",
-        'enter_new_nickname': "✏️ Send the new nickname you want:",
-        
-        'guild_joined': "✅ Joined guild `{clan_id}` successfully!",
-        'guild_left': "✅ Left guild `{clan_id}` successfully!",
-        'enter_clan_id': "🏰 Send the Clan ID:",
-        
-        'friend_sent': "✅ Friend request sent to `{uid}` successfully!",
-        'friend_removed': "✅ Friend request removed from `{uid}` successfully!",
-        'enter_target_uid': "👤 Send the target user's UID:",
-        
-        'ban_result': """🚫 **Ban Check Result**
-
-📊 **Status:** {status}
-🆔 **UID:** {uid}
-👤 **Name:** {name}
-🌍 **Region:** {region}""",
-
-        'events_result': """📅 **Current Game Events**
-
-{events}""",
-
-        'wishlist_result': """⭐ **Wishlist**
-
-{wishlist}""",
-
-        # ========== Admin Messages ==========
-        'admin_panel': "⚙️ **Admin Panel**",
-        'user_list': "👥 **User List**\n{users}",
-        'manage_codes': "🎫 **Code Management**\n{code_list}",
-        'reseller_panel': "💼 **Reseller Panel**",
-        'points_balance': "⭐ **Points Balance:** {points}",
-
-        # ========== New Services Messages (English) ==========
+        # ========== New Services Messages ==========
         'change_bind_method': "🔐 **Change Recovery Email**\n\nChoose the appropriate method:",
-        'enter_old_email': "📧 Send the old email (currently linked):",
-        'enter_new_email': "📧 Send the new email to bind:",
         'enter_security_code': "🔐 Send the security code (6 digits):",
         'bind_changed': "✅ Recovery email changed successfully!",
         'unbind_success_v2': "✅ Recovery email unbound successfully!",
@@ -425,17 +342,44 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'ban_already_stopped': "ℹ️ No active ban session for this account.",
         'login_history_empty': "📋 **Login History**\n\nNo login history records available.",
         'bound_accounts_empty': "🔗 **Bound Platforms**\n\nNo platforms are bound to this account.",
+        
+        # ========== Change Bind OTP Steps ==========
         'change_bind_otp_step1': "📧 Send the old email (currently linked):",
         'change_bind_otp_step2': "🔑 Send the OTP code received on the old email:",
         'change_bind_otp_step3': "📧 Send the new email:",
         'change_bind_otp_step4': "🔑 Send the OTP code received on the new email:",
-        'unbind_otp_step1': "📧 Send the currently linked email:",
-        'unbind_otp_step2': "🔑 Send the OTP code received on the email:",
-        'unbind_sec_step1': "📧 Send the currently linked email:",
-        'unbind_sec_step2': "🔐 Send the security code (6 digits):",
+        
+        # ========== Change Bind Security Code Steps ==========
         'change_bind_sec_step1': "📧 Send the old email (currently linked):",
         'change_bind_sec_step2': "🔐 Send the security code (6 digits):",
         'change_bind_sec_step3': "📧 Send the new email:",
         'change_bind_sec_step4': "🔑 Send the OTP code received on the new email:",
+        
+        # ========== Unbind OTP Steps ==========
+        'unbind_otp_step1': "📧 Send the currently linked email:",
+        'unbind_otp_step2': "🔑 Send the OTP code received on the email:",
+        
+        # ========== Unbind Security Code Steps ==========
+        'unbind_sec_step1': "📧 Send the currently linked email:",
+        'unbind_sec_step2': "🔐 Send the security code (6 digits):",
+        
+        # ========== Remaining Services ==========
+        'friend_sent': "✅ Friend request sent to `{uid}` successfully!",
+        'friend_removed': "✅ Friend request removed from `{uid}` successfully!",
+        'enter_target_uid': "👤 Send the target user's UID:",
+        
+        'ban_result': """🚫 **Ban Check Result**
+
+📊 **Status:** {status}
+🆔 **UID:** {uid}
+👤 **Name:** {name}
+🌍 **Region:** {region}""",
+
+        # ========== Admin Messages ==========
+        'admin_panel': "⚙️ **Admin Panel**",
+        'user_list': "👥 **User List**\n{users}",
+        'manage_codes': "🎫 **Code Management**\n{code_list}",
+        'reseller_panel': "💼 **Reseller Panel**",
+        'points_balance': "⭐ **Points Balance:** {points}",
     }
 }
