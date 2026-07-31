@@ -126,6 +126,7 @@ async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT
     query = update.callback_query
     await query.answer()
     
+    # ✅ تصحيح استخراج account_id
     acc_id = query.data.split('_')[1]
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
@@ -344,47 +345,50 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
-# ========== حذف روابط ثانوية ==========
-async def handle_delete_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    query = update.callback_query
-    await query.answer()
-    acc_id = query.data.split('_')[1]
-    accounts = get_user_accounts(user_id)
-    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
-    if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
-        return
-    access_token = get_access_token_for_account(account)
-    if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
-        return
-    if cancel_request(access_token):
-        msg = "✅ تم إلغاء طلب الربط المعلق بنجاح."
-    else:
-        msg = "❌ فشل إلغاء الطلب المعلق."
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
-
-# ========== حرق التوكيل ==========
+# ========== حرق التوكيل (محسّن) ==========
 async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
+    
     acc_id = query.data.split('_')[1]
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
         await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
         return
+    
     access_token = get_access_token_for_account(account)
     if not access_token:
         await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
         return
-    if revoke_token(access_token):
-        msg = get_text(user_id, 'burn_success')
-    else:
-        msg = get_text(user_id, 'operation_failed', error="فشل حرق التوكن")
-    await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    
+    wait_msg = await query.edit_message_text(
+        "⏳ جاري حرق التوكن...",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+    
+    try:
+        # ✅ التحقق الفعلي من نجاح الحرق
+        success = revoke_token(access_token)
+        if success:
+            # حذف التوكن المخزن مؤقتاً
+            account['access_token'] = None
+            account['token_expiry'] = None
+            await wait_msg.edit_text(
+                "🔥 تم حرق التوكن وإبطاله بنجاح (تم تسجيل الخروج من جميع الأجهزة).",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                "❌ فشل حرق التوكن. تأكد من صحة التوكن.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(
+            f"❌ حدث خطأ: {str(e)[:100]}",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
 
 # ========== سبام تسجيل دخول ==========
 async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -400,30 +404,11 @@ async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = get_text(user_id, 'spam_started')
     await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== الخدمات الجديدة ==========
+# ========== الخدمات الجديدة (المصححة) ==========
 
-# ---------- تغيير بريد الاستعادة ----------
-async def handle_change_bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض خيارات تغيير البريد"""
-    user_id = update.effective_user.id
-    query = update.callback_query
-    await query.answer()
-    
-    acc_id = query.data.split('_')[1]
-    keyboard = [
-        [
-            InlineKeyboardButton("🔄 عبر OTP", callback_data=f'change_bind_otp_{acc_id}'),
-            InlineKeyboardButton("🔄 عبر كود أمان", callback_data=f'change_bind_sec_{acc_id}')
-        ],
-        [InlineKeyboardButton("🔙 عودة", callback_data=f'account_control_{acc_id}')]
-    ]
-    await query.edit_message_text(
-        "🔐 **تغيير بريد الاستعادة**\n\nاختر الطريقة:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
+# ---------- تغيير بريد الاستعادة (OTP) ----------
 async def handle_change_bind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تغيير البريد عبر OTP"""
+    """بدء عملية تغيير البريد عبر OTP"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -431,15 +416,16 @@ async def handle_change_bind_otp(update: Update, context: ContextTypes.DEFAULT_T
     acc_id = query.data.split('_')[1]
     context.user_data['action'] = 'waiting_change_bind_otp'
     context.user_data['acc_id'] = acc_id
-    context.user_data['operation'] = 'change_bind_otp'
+    context.user_data['step'] = 'old_email'
     
     await query.edit_message_text(
         "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
+# ---------- تغيير بريد الاستعادة (كود أمان) ----------
 async def handle_change_bind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """تغيير البريد عبر كود أمان"""
+    """بدء عملية تغيير البريد عبر كود أمان"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -447,35 +433,16 @@ async def handle_change_bind_sec(update: Update, context: ContextTypes.DEFAULT_T
     acc_id = query.data.split('_')[1]
     context.user_data['action'] = 'waiting_change_bind_sec'
     context.user_data['acc_id'] = acc_id
-    context.user_data['operation'] = 'change_bind_sec'
+    context.user_data['step'] = 'old_email'
     
     await query.edit_message_text(
         "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
-# ---------- إلغاء ربط البريد ----------
-async def handle_unbind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض خيارات إلغاء الربط"""
-    user_id = update.effective_user.id
-    query = update.callback_query
-    await query.answer()
-    
-    acc_id = query.data.split('_')[1]
-    keyboard = [
-        [
-            InlineKeyboardButton("🔓 عبر OTP", callback_data=f'unbind_otp_{acc_id}'),
-            InlineKeyboardButton("🔓 عبر كود أمان", callback_data=f'unbind_sec_{acc_id}')
-        ],
-        [InlineKeyboardButton("🔙 عودة", callback_data=f'account_control_{acc_id}')]
-    ]
-    await query.edit_message_text(
-        "🔓 **إلغاء ربط بريد الاستعادة**\n\nاختر الطريقة:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
+# ---------- إلغاء ربط البريد (OTP) ----------
 async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إلغاء الربط عبر OTP"""
+    """بدء عملية إلغاء الربط عبر OTP"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -483,15 +450,16 @@ async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     acc_id = query.data.split('_')[1]
     context.user_data['action'] = 'waiting_unbind_otp'
     context.user_data['acc_id'] = acc_id
-    context.user_data['operation'] = 'unbind_otp'
+    context.user_data['step'] = 'email'
     
     await query.edit_message_text(
         "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
+# ---------- إلغاء ربط البريد (كود أمان) ----------
 async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إلغاء الربط عبر كود أمان"""
+    """بدء عملية إلغاء الربط عبر كود أمان"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -499,7 +467,7 @@ async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
     acc_id = query.data.split('_')[1]
     context.user_data['action'] = 'waiting_unbind_sec'
     context.user_data['acc_id'] = acc_id
-    context.user_data['operation'] = 'unbind_sec'
+    context.user_data['step'] = 'email'
     
     await query.edit_message_text(
         "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
@@ -508,7 +476,6 @@ async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------- إلغاء طلب الربط المعلق ----------
 async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إلغاء طلب الربط المعلق"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -549,7 +516,6 @@ async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 # ---------- سجل تسجيل الدخول ----------
 async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض سجل تسجيل الدخول"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -572,24 +538,18 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
     )
     
     try:
-        # جلب معلومات اللاعب أولاً
         player_info = get_player_info(access_token)
-        
         if player_info.get("success"):
             nickname = player_info.get("nickname", "غير معروف")
             uid = player_info.get("uid", "غير معروف")
             region = player_info.get("region", "غير معروف")
             
-            # جلب سجل الدخول
             history_result = get_login_history(access_token)
-            
             if history_result.get("success"):
                 records = history_result.get("records", [])
                 if records:
                     text = f"📋 **سجل تسجيل الدخول**\n\n"
-                    text += f"👤 **الاسم:** {nickname}\n"
-                    text += f"🆔 **UID:** {uid}\n"
-                    text += f"🌍 **المنطقة:** {region}\n\n"
+                    text += f"👤 **الاسم:** {nickname}\n🆔 **UID:** {uid}\n🌍 **المنطقة:** {region}\n\n"
                     text += "**السجلات:**\n"
                     for i, rec in enumerate(records[:10], 1):
                         text += f"{i}. {rec}\n"
@@ -600,7 +560,6 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
                 msg = "⚠️ لم نتمكن من جلب سجل تسجيل الدخول."
         else:
             msg = "⚠️ لم نتمكن من جلب معلومات اللاعب."
-            
     except Exception as e:
         msg = f"❌ حدث خطأ: {str(e)[:100]}"
     
@@ -608,7 +567,6 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
 
 # ---------- الروابط الثانوية (مفصلة) ----------
 async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """عرض المنصات المرتبطة بشكل مفصل"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -632,13 +590,11 @@ async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.D
     
     try:
         result = get_bound_accounts_detailed(access_token)
-        
         if result.get("success"):
             bounded = result.get("bounded", [])
             available = result.get("available", [])
             
             text = "🔗 **المنصات المرتبطة (مفصلة)**\n\n"
-            
             if bounded:
                 text += "**✅ المنصات المرتبطة:**\n"
                 for p in bounded:
@@ -661,7 +617,6 @@ async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.D
 
 # ---------- تبنيد الحساب ----------
 async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء/إيقاف تبنيد الحساب"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -678,43 +633,29 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
         return
     
-    # التحقق من وجود جلسة تبنيد نشطة
     is_active = is_ban_active_account(acc_id)
     
     if is_active:
-        # إيقاف التبنيد
         keyboard = [
-            [
-                InlineKeyboardButton("✅ نعم، إيقاف", callback_data=f'ban_stop_{acc_id}'),
-                InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')
-            ]
+            [InlineKeyboardButton("✅ نعم، إيقاف", callback_data=f'ban_stop_{acc_id}'),
+             InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')]
         ]
         await query.edit_message_text(
-            f"☠️ **تبنيد الحساب**\n\n"
-            f"⚠️ يوجد جلسة تبنيد نشطة لهذا الحساب.\n\n"
-            f"هل تريد إيقافها؟",
+            f"☠️ **تبنيد الحساب**\n\n⚠️ يوجد جلسة تبنيد نشطة لهذا الحساب.\n\nهل تريد إيقافها؟",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
         return
     
-    # بدء التبنيد
     keyboard = [
-        [
-            InlineKeyboardButton("✅ نعم، بدء التبنيد", callback_data=f'ban_start_{acc_id}'),
-            InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')
-        ]
+        [InlineKeyboardButton("✅ نعم، بدء التبنيد", callback_data=f'ban_start_{acc_id}'),
+         InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')]
     ]
     await query.edit_message_text(
-        f"☠️ **تبنيد الحساب**\n\n"
-        f"⚠️ سيتم تشغيل اتصالات مستمرة للتبنيد.\n"
-        f"👤 الحساب: {account['name']}\n"
-        f"🆔 المعرف: {acc_id}\n\n"
-        f"هل تريد بدء تبنيد الحساب؟",
+        f"☠️ **تبنيد الحساب**\n\n⚠️ سيتم تشغيل اتصالات مستمرة للتبنيد.\n👤 الحساب: {account['name']}\n🆔 المعرف: {acc_id}\n\nهل تريد بدء تبنيد الحساب؟",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """بدء تبنيد الحساب"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -738,15 +679,10 @@ async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         result = start_ban_account(access_token)
-        
         if result.get("success"):
             account_name = result.get("account_name", account['name'])
             await wait_msg.edit_text(
-                f"☠️ **تم بدء تبنيد الحساب بنجاح!**\n\n"
-                f"👤 الاسم: {account_name}\n"
-                f"🆔 المعرف: {acc_id}\n\n"
-                f"⚠️ جلسة التبنيد تعمل في الخلفية.\n"
-                f"يمكنك إيقافها بالضغط على زر '☠️ تبنيد الحساب' مرة أخرى.",
+                f"☠️ **تم بدء تبنيد الحساب بنجاح!**\n\n👤 الاسم: {account_name}\n🆔 المعرف: {acc_id}\n\n⚠️ جلسة التبنيد تعمل في الخلفية.\nيمكنك إيقافها بالضغط على زر '☠️ تبنيد الحساب' مرة أخرى.",
                 reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
             )
         else:
@@ -762,7 +698,6 @@ async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """إيقاف تبنيد الحساب"""
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -776,12 +711,9 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     try:
         result = stop_ban_account(acc_id)
-        
         if result.get("success"):
             await wait_msg.edit_text(
-                f"⏹️ **تم إيقاف تبنيد الحساب بنجاح!**\n\n"
-                f"🆔 المعرف: {acc_id}\n\n"
-                f"✅ تم إيقاف جميع جلسات التبنيد.",
+                f"⏹️ **تم إيقاف تبنيد الحساب بنجاح!**\n\n🆔 المعرف: {acc_id}\n\n✅ تم إيقاف جميع جلسات التبنيد.",
                 reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
             )
         else:
@@ -827,8 +759,7 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
         context.user_data['old_email'] = text
         context.user_data['step'] = 'old_otp'
         await update.message.reply_text(
-            f"📧 تم حفظ البريد القديم: {text}\n\n"
-            f"🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
+            f"📧 تم حفظ البريد القديم: {text}\n\n🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -841,7 +772,6 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
             context.user_data['action'] = None
             return
         
-        # التحقق من OTP القديم
         identity_token = verify_identity_otp(access_token, old_email, old_otp)
         if not identity_token:
             await update.message.reply_text(
@@ -854,8 +784,7 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
         context.user_data['identity_token'] = identity_token
         context.user_data['step'] = 'new_email'
         await update.message.reply_text(
-            "✅ تم التحقق من البريد القديم بنجاح!\n\n"
-            "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
+            "✅ تم التحقق من البريد القديم بنجاح!\n\n📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -864,8 +793,7 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
         context.user_data['new_email'] = text
         context.user_data['step'] = 'new_otp'
         await update.message.reply_text(
-            f"📧 تم حفظ البريد الجديد: {text}\n\n"
-            f"🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
+            f"📧 تم حفظ البريد الجديد: {text}\n\n🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -879,7 +807,6 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
             context.user_data['action'] = None
             return
         
-        # التحقق من OTP الجديد
         verifier_token = verify_otp(access_token, new_email, new_otp)
         if not verifier_token:
             await update.message.reply_text(
@@ -889,14 +816,11 @@ async def handle_change_bind_otp_input(update: Update, context: ContextTypes.DEF
             context.user_data['action'] = None
             return
         
-        # إنشاء طلب تغيير الربط
         try:
             success = create_rebind_request(access_token, identity_token, verifier_token, new_email)
             if success:
                 await update.message.reply_text(
-                    f"✅ **تم تغيير بريد الاستعادة بنجاح!**\n\n"
-                    f"📧 البريد القديم: `{context.user_data.get('old_email')}`\n"
-                    f"📧 البريد الجديد: `{new_email}`",
+                    f"✅ **تم تغيير بريد الاستعادة بنجاح!**\n\n📧 البريد القديم: `{context.user_data.get('old_email')}`\n📧 البريد الجديد: `{new_email}`",
                     reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
                 )
             else:
@@ -941,8 +865,7 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
         context.user_data['old_email'] = text
         context.user_data['step'] = 'security_code'
         await update.message.reply_text(
-            f"📧 تم حفظ البريد القديم: {text}\n\n"
-            f"🔐 أرسل كود الأمان (6 أرقام) الخاص بالحساب:",
+            f"📧 تم حفظ البريد القديم: {text}\n\n🔐 أرسل كود الأمان (6 أرقام) الخاص بالحساب:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -955,7 +878,6 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
             context.user_data['action'] = None
             return
         
-        # التحقق من الهوية بكود الأمان
         identity_token = verify_identity_sec(access_token, old_email, sec_code)
         if not identity_token:
             await update.message.reply_text(
@@ -968,8 +890,7 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
         context.user_data['identity_token'] = identity_token
         context.user_data['step'] = 'new_email'
         await update.message.reply_text(
-            "✅ تم التحقق من كود الأمان بنجاح!\n\n"
-            "📧 أرسل البريد الإلكتروني الجديد:",
+            "✅ تم التحقق من كود الأمان بنجاح!\n\n📧 أرسل البريد الإلكتروني الجديد:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -982,13 +903,11 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
             context.user_data['action'] = None
             return
         
-        # إرسال OTP إلى البريد الجديد
         if send_otp(access_token, new_email):
             context.user_data['new_email'] = new_email
             context.user_data['step'] = 'new_otp_sec'
             await update.message.reply_text(
-                f"📧 تم إرسال OTP إلى `{new_email}`\n\n"
-                f"🔑 أرسل رمز OTP الذي وصلك:",
+                f"📧 تم إرسال OTP إلى `{new_email}`\n\n🔑 أرسل رمز OTP الذي وصلك:",
                 reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
             )
         else:
@@ -1021,9 +940,7 @@ async def handle_change_bind_sec_input(update: Update, context: ContextTypes.DEF
             success = create_rebind_request(access_token, identity_token, verifier_token, new_email)
             if success:
                 await update.message.reply_text(
-                    f"✅ **تم تغيير بريد الاستعادة بنجاح!**\n\n"
-                    f"📧 البريد القديم: `{context.user_data.get('old_email')}`\n"
-                    f"📧 البريد الجديد: `{new_email}`",
+                    f"✅ **تم تغيير بريد الاستعادة بنجاح!**\n\n📧 البريد القديم: `{context.user_data.get('old_email')}`\n📧 البريد الجديد: `{new_email}`",
                     reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
                 )
             else:
@@ -1068,8 +985,7 @@ async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_
         context.user_data['email'] = text
         context.user_data['step'] = 'otp'
         await update.message.reply_text(
-            f"📧 تم حفظ البريد: {text}\n\n"
-            f"🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
+            f"📧 تم حفظ البريد: {text}\n\n🔑 أرسل رمز OTP الذي وصلك إلى هذا البريد:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -1095,8 +1011,7 @@ async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_
             success = create_unbind_request(access_token, identity_token)
             if success:
                 await update.message.reply_text(
-                    f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n\n"
-                    f"📧 البريد: `{email}`",
+                    f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n\n📧 البريد: `{email}`",
                     reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
                 )
             else:
@@ -1141,8 +1056,7 @@ async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_
         context.user_data['email'] = text
         context.user_data['step'] = 'security_code'
         await update.message.reply_text(
-            f"📧 تم حفظ البريد: {text}\n\n"
-            f"🔐 أرسل كود الأمان (6 أرقام) الخاص بالحساب:",
+            f"📧 تم حفظ البريد: {text}\n\n🔐 أرسل كود الأمان (6 أرقام) الخاص بالحساب:",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
         return
@@ -1168,8 +1082,7 @@ async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_
             success = create_unbind_request(access_token, identity_token)
             if success:
                 await update.message.reply_text(
-                    f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n\n"
-                    f"📧 البريد: `{email}`",
+                    f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n\n📧 البريد: `{email}`",
                     reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
                 )
             else:
