@@ -360,13 +360,49 @@ def cancel_request(access_token: str) -> bool:
     except:
         return False
 
+# ========== دوال إبطال التوكن (محسّنة) ==========
 def revoke_token(access_token: str) -> bool:
-    """إبطال التوكن (تسجيل الخروج)"""
-    url = f"https://100067.connect.garena.com/oauth/logout?access_token={access_token}"
+    """
+    إبطال التوكن (تسجيل الخروج الإجباري)
+    
+    Args:
+        access_token: توكن الوصول
+    
+    Returns:
+        True إذا تم الإبطال بنجاح، False إذا فشل
+    """
     try:
-        resp = requests.get(url, timeout=10)
-        return resp.status_code == 200
-    except:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json"
+        }
+        
+        # refresh_token ثابت (يمكن الحصول عليه من اللعبة)
+        refresh_token = "1380dcb63ab3a077dc05bdf0b25ba4497c403a5b4eae96d7203010eafa6c83a8"
+        url = f"https://100067.connect.garena.com/oauth/logout?access_token={access_token}&refresh_token={refresh_token}"
+        
+        resp = requests.get(url, headers=headers, timeout=15)
+        
+        if resp.status_code == 200:
+            try:
+                data = resp.json()
+                if "error" not in data:
+                    return True
+                else:
+                    logging.warning(f"revoke_token: API returned error: {data.get('error')}")
+                    return False
+            except:
+                # إذا لم تكن استجابة JSON، نعتبر أنها نجحت إذا كان الكود 200
+                return True
+        else:
+            logging.warning(f"revoke_token: HTTP {resp.status_code}")
+            return False
+            
+    except requests.exceptions.Timeout:
+        logging.error("revoke_token: Timeout")
+        return False
+    except Exception as e:
+        logging.error(f"revoke_token: {str(e)}")
         return False
 
 # ========== دوال سجل تسجيل الدخول ==========
@@ -444,9 +480,8 @@ def get_login_history(access_token: str, jwt_token: str = None) -> Dict:
         return result
     
     try:
-        # محاولة الحصول على JWT إذا لم يتم توفيره
         if not jwt_token:
-            # هنا يمكن إضافة منطق للحصول على JWT من access_token
+            # محاولة الحصول على JWT من access_token (سيتم تنفيذها لاحقاً)
             pass
         
         headers = {
