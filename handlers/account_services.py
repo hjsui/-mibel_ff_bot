@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from utils import (
@@ -14,12 +15,11 @@ from garena_api import (
     verify_identity_otp, verify_identity_sec, cancel_request,
     revoke_token, create_rebind_request, create_unbind_request,
     create_bind_request, format_recovery_info, format_platforms,
-    # الخدمات الجديدة
-    get_account_info, get_player_stats, get_friends,
-    send_friend_request, remove_friend,
+    # الخدمات الجديدة (المصححة)
+    get_friends, send_friend_request, remove_friend,
     get_clan_info, get_clan_members, request_join_clan, quit_clan,
-    get_attendance, get_login_history, get_bound_accounts_detailed,
-    get_player_info
+    get_player_stats, get_attendance, get_login_history, get_bound_accounts_detailed,
+    get_player_info, get_jwt_from_access_token
 )
 from external_apis import friend_request
 from handlers.main_menu import get_back_button, get_main_menu, get_account_controls
@@ -689,24 +689,35 @@ async def handle_unbind(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🔐 عبر كود الأمان", callback_data=f'unbind_sec_{acc_id}')],
         [InlineKeyboardButton("🔙 عودة", callback_data=f'account_control_{acc_id}')]
     ]
-    await query.edit_message_text(
-        "⛓️‍💥 **إلغاء ارتباط الاستعادة**\n\nاختر طريقة التحقق:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        await query.edit_message_text(
+            "⛓️‍💥 **إلغاء ارتباط الاستعادة**\n\nاختر طريقة التحقق:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_unbind: {str(e)}")
 
 # ---------- إلغاء الربط عبر OTP ----------
 async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_unbind_otp'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'email'
-    await query.edit_message_text(
-        "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_unbind_otp: {str(e)}")
 
 async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -764,15 +775,22 @@ async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_
 async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_unbind_sec'
     context.user_data['acc_id'] = acc_id
     context.user_data['step'] = 'email'
-    await query.edit_message_text(
-        "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_unbind_sec: {str(e)}")
 
 async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -829,16 +847,27 @@ async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_
 async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_cancel_bind: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_cancel_bind: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري إلغاء طلب الربط المعلق...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -856,16 +885,27 @@ async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_login_history: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_login_history: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري جلب سجل تسجيل الدخول...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -899,16 +939,27 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
 async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_bound_accounts_detailed: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_bound_accounts_detailed: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري جلب الروابط الثانوية...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -941,16 +992,27 @@ async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.D
 async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_ban: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_ban: {str(e)}")
         return
     is_active = is_ban_active_account(acc_id)
     if is_active:
@@ -958,33 +1020,52 @@ async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("✅ نعم، إيقاف", callback_data=f'ban_stop_{acc_id}'),
              InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')]
         ]
-        await query.edit_message_text(
-            f"☠️ **تبنيد الحساب**\n\n⚠️ يوجد جلسة تبنيد نشطة.\n\nهل تريد إيقافها؟",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        try:
+            await query.edit_message_text(
+                f"☠️ **تبنيد الحساب**\n\n⚠️ يوجد جلسة تبنيد نشطة.\n\nهل تريد إيقافها؟",
+                reply_markup=InlineKeyboardMarkup(keyboard)
+            )
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_ban: {str(e)}")
         return
     keyboard = [
         [InlineKeyboardButton("✅ نعم، بدء التبنيد", callback_data=f'ban_start_{acc_id}'),
          InlineKeyboardButton("❌ إلغاء", callback_data=f'account_control_{acc_id}')]
     ]
-    await query.edit_message_text(
-        f"☠️ **تبنيد الحساب**\n\n⚠️ سيتم تشغيل اتصالات مستمرة.\n👤 الحساب: {account['name']}\n🆔 المعرف: {acc_id}\n\nهل تريد بدء التبنيد؟",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    try:
+        await query.edit_message_text(
+            f"☠️ **تبنيد الحساب**\n\n⚠️ سيتم تشغيل اتصالات مستمرة.\n👤 الحساب: {account['name']}\n🆔 المعرف: {acc_id}\n\nهل تريد بدء التبنيد؟",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_ban: {str(e)}")
 
 async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_ban_start: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_ban_start: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري بدء تبنيد الحساب...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -1002,7 +1083,10 @@ async def handle_ban_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     wait_msg = await query.edit_message_text("⏳ جاري إيقاف تبنيد الحساب...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -1025,16 +1109,27 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_friends_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_friends_list: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_friends_list: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري جلب قائمة الأصدقاء...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -1054,7 +1149,7 @@ async def handle_friends_list(update: Update, context: ContextTypes.DEFAULT_TYPE
             else:
                 msg = "👥 لا يوجد أصدقاء في القائمة."
         else:
-            msg = "⚠️ لم نتمكن من جلب قائمة الأصدقاء."
+            msg = f"⚠️ لم نتمكن من جلب قائمة الأصدقاء: {result.get('error', '')}"
     except Exception as e:
         msg = f"❌ حدث خطأ: {str(e)[:100]}"
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
@@ -1063,14 +1158,21 @@ async def handle_friends_list(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def handle_friend_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_friend_add_uid'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "👤 أرسل UID الشخص الذي تريد إضافته كصديق:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "👤 أرسل UID الشخص الذي تريد إضافته كصديق:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_friend_add: {str(e)}")
 
 async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1091,7 +1193,7 @@ async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري إرسال طلب الصداقة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري إرسال طلب الصداقة...")
     try:
         result = send_friend_request(access_token, target_uid)
         if result.get("success"):
@@ -1112,14 +1214,21 @@ async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_
 async def handle_friend_remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_friend_remove_uid'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "👤 أرسل UID الصديق الذي تريد حذفه:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "👤 أرسل UID الصديق الذي تريد حذفه:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_friend_remove: {str(e)}")
 
 async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1140,7 +1249,7 @@ async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAU
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري حذف الصديق...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري حذف الصديق...")
     try:
         result = remove_friend(access_token, target_uid)
         if result.get("success"):
@@ -1161,14 +1270,21 @@ async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAU
 async def handle_clan_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_clan_id_info'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "🏰 أرسل معرف القبيلة (Clan ID):",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "🏰 أرسل معرف القبيلة (Clan ID):",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_clan_info: {str(e)}")
 
 async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1189,7 +1305,7 @@ async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري جلب معلومات القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري جلب معلومات القبيلة...")
     try:
         result = get_clan_info(access_token, clan_id)
         if result.get("success"):
@@ -1217,14 +1333,21 @@ async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_clan_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_clan_id_members'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "🏰 أرسل معرف القبيلة (Clan ID):",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "🏰 أرسل معرف القبيلة (Clan ID):",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_clan_members: {str(e)}")
 
 async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1245,7 +1368,7 @@ async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAUL
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري جلب أعضاء القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري جلب أعضاء القبيلة...")
     try:
         result = get_clan_members(access_token, clan_id)
         if result.get("success"):
@@ -1275,14 +1398,21 @@ async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAUL
 async def handle_clan_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_clan_id_join'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "🏰 أرسل معرف القبيلة الذي تريد الانضمام إليها:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "🏰 أرسل معرف القبيلة الذي تريد الانضمام إليها:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_clan_join: {str(e)}")
 
 async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1303,7 +1433,7 @@ async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري طلب الانضمام للقبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري طلب الانضمام للقبيلة...")
     try:
         result = request_join_clan(access_token, clan_id)
         if result.get("success"):
@@ -1324,14 +1454,21 @@ async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_clan_quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     context.user_data['action'] = 'waiting_clan_id_quit'
     context.user_data['acc_id'] = acc_id
-    await query.edit_message_text(
-        "🏰 أرسل معرف القبيلة التي تريد مغادرتها:",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
+    try:
+        await query.edit_message_text(
+            "🏰 أرسل معرف القبيلة التي تريد مغادرتها:",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+    except Exception as e:
+        if "Message is not modified" not in str(e):
+            logging.error(f"handle_clan_quit: {str(e)}")
 
 async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -1352,7 +1489,7 @@ async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
         return
-    wait_msg = await update.message.reply_text("⏳ جاري مغادرة القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    wait_msg = await update.message.reply_text("⏳ جاري مغادرة القبيلة...")
     try:
         result = quit_clan(access_token, clan_id)
         if result.get("success"):
@@ -1373,16 +1510,27 @@ async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_player_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_player_stats: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_player_stats: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري جلب إحصائيات اللاعب...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -1408,16 +1556,27 @@ async def handle_player_stats(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def handle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
-    await query.answer()
+    try:
+        await query.answer()
+    except:
+        pass
     acc_id = _extract_account_id(query.data)
     accounts = get_user_accounts(user_id)
     account = next((acc for acc in accounts if acc['id'] == acc_id), None)
     if not account:
-        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_attendance: {str(e)}")
         return
     access_token = get_access_token_for_account(account)
     if not access_token:
-        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        except Exception as e:
+            if "Message is not modified" not in str(e):
+                logging.error(f"handle_attendance: {str(e)}")
         return
     wait_msg = await query.edit_message_text("⏳ جاري جلب معلومات الحضور اليومي...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
@@ -1426,7 +1585,7 @@ async def handle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
             attendance = result.get("attendance", {})
             text = "📅 **الحضور اليومي**\n\n"
             text += f"📆 **اليوم:** {attendance.get('day', 'غير معروف')}\n"
-            text += f"✅ **حالة الحضور:** {'تم الحضور' if attendance.get('checked_in') else 'لم يحضر بعد'}\n"
+            text += f"✅ **حالة الحضور:** {'✅ تم الحضور' if attendance.get('checked_in') else '❌ لم يحضر بعد'}\n"
             text += f"🎁 **المكافآت المتاحة:** {attendance.get('rewards', 'غير معروف')}\n"
             await wait_msg.edit_text(text, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
         else:
@@ -1567,23 +1726,3 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
 async def handle_unbind_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     pass
-
-# ========== معالجات إدخال النصوص للخدمات الجديدة ==========
-
-async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_friend_add_input(update, context)  # تم تعريفها أعلاه
-
-async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_friend_remove_input(update, context)  # تم تعريفها أعلاه
-
-async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_clan_info_input(update, context)  # تم تعريفها أعلاه
-
-async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_clan_members_input(update, context)  # تم تعريفها أعلاه
-
-async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_clan_join_input(update, context)  # تم تعريفها أعلاه
-
-async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await handle_clan_quit_input(update, context)  # تم تعريفها أعلاه
