@@ -9,12 +9,17 @@ from utils import (
     user_data_store, convert_eat, add_account, delete_account, decode_jwt
 )
 from garena_api import (
+    # الخدمات الأساسية
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
     verify_identity_otp, verify_identity_sec, cancel_request,
     revoke_token, create_rebind_request, create_unbind_request,
     create_bind_request, format_recovery_info, format_platforms,
-    get_bound_accounts_detailed, get_login_history,
-    start_ban_account, stop_ban_account, is_ban_active_account, get_player_info
+    # الخدمات الجديدة
+    get_account_info, get_player_stats, get_friends,
+    send_friend_request, remove_friend,
+    get_clan_info, get_clan_members, request_join_clan, quit_clan,
+    get_attendance, get_login_history, get_bound_accounts_detailed,
+    get_player_info
 )
 from external_apis import friend_request
 from handlers.main_menu import get_back_button, get_main_menu, get_account_controls
@@ -25,7 +30,11 @@ def _extract_account_id(callback_data: str) -> str:
     parts = callback_data.split('_')
     return parts[-1]
 
-# ========== إضافة حساب ==========
+# ================================================================
+# ========== الخدمات الأساسية (الموجودة بالفعل) ==========
+# ================================================================
+
+# ---------- إضافة حساب ----------
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
@@ -68,7 +77,7 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=get_main_menu(user_id)
         )
 
-# ========== تحكم في الحساب ==========
+# ---------- تحكم في الحساب ----------
 async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -97,7 +106,7 @@ async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TY
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ========== حساباتي ==========
+# ---------- حساباتي ----------
 async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -126,7 +135,7 @@ async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ========== اختيار حساب ==========
+# ---------- اختيار حساب ----------
 async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -193,7 +202,7 @@ async def handle_account_control(update: Update, context: ContextTypes.DEFAULT_T
         reply_markup=get_account_controls(user_id, account)
     )
 
-# ========== حذف حساب ==========
+# ---------- حذف حساب ----------
 async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -211,7 +220,7 @@ async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TY
             reply_markup=get_main_menu(user_id)
         )
 
-# ========== كشف الاستعادة ==========
+# ---------- كشف الاستعادة ----------
 async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -263,7 +272,7 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== كشف الروابط الفرعية ==========
+# ---------- كشف الروابط الفرعية ----------
 async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -308,7 +317,7 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== تجربة رمز الأمان ==========
+# ---------- تجربة رمز الأمان ----------
 async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -322,7 +331,7 @@ async def handle_try_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
 
-# ========== طلب صداقة ==========
+# ---------- طلب صداقة (الأساسي) ----------
 async def handle_friend_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -373,7 +382,7 @@ async def handle_friend_input(update: Update, context: ContextTypes.DEFAULT_TYPE
         )
     context.user_data['action'] = None
 
-# ========== سبام تسجيل دخول ==========
+# ---------- سبام تسجيل دخول ----------
 async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -387,7 +396,7 @@ async def handle_spam_login(update: Update, context: ContextTypes.DEFAULT_TYPE):
         msg = get_text(user_id, 'spam_started')
     await query.edit_message_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== فحص الحظر ==========
+# ---------- فحص الحظر ----------
 async def handle_ban_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -418,7 +427,7 @@ async def handle_ban_check(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         await wait_msg.edit_text("⚠️ حدث خطأ غير متوقع.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ========== حرق التوكن ==========
+# ---------- حرق التوكن ----------
 async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -445,11 +454,10 @@ async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ============================================================
-# ========== الخدمات الجديدة (المدمجة مع الأدوات) ==========
-# ============================================================
+# ================================================================
+# ========== إضافة/تغيير استعادة (مع اختيار الطريقة) ==========
+# ================================================================
 
-# ---------- إضافة/تغيير استعادة (يطلب اختيار الطريقة) ----------
 async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -465,7 +473,7 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ---------- إضافة/تغيير استعادة عبر OTP (دمج أداة OBITO) ----------
+# ---------- إضافة/تغيير استعادة عبر OTP ----------
 async def handle_add_recovery_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -667,7 +675,10 @@ async def handle_add_recovery_sec_input(update: Update, context: ContextTypes.DE
         context.user_data['action'] = None
         return
 
-# ---------- إلغاء ارتباط الاستعادة (يطلب اختيار الطريقة) ----------
+# ================================================================
+# ========== إلغاء ارتباط الاستعادة (مع اختيار الطريقة) ==========
+# ================================================================
+
 async def handle_unbind(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -683,7 +694,7 @@ async def handle_unbind(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ---------- إلغاء الربط عبر OTP (دمج أداة OBITO UNBIND) ----------
+# ---------- إلغاء الربط عبر OTP ----------
 async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -811,7 +822,10 @@ async def handle_unbind_sec_input(update: Update, context: ContextTypes.DEFAULT_
         context.user_data['action'] = None
         return
 
-# ---------- إلغاء طلب الربط المعلق ----------
+# ================================================================
+# ========== إلغاء طلب الربط المعلق ==========
+# ================================================================
+
 async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -835,7 +849,10 @@ async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE)
     except Exception as e:
         await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ---------- سجل تسجيل الدخول ----------
+# ================================================================
+# ========== سجل تسجيل الدخول ==========
+# ================================================================
+
 async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -875,7 +892,10 @@ async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYP
         msg = f"❌ حدث خطأ: {str(e)[:100]}"
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ---------- الروابط المفصلة ----------
+# ================================================================
+# ========== الروابط المفصلة ==========
+# ================================================================
+
 async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -914,7 +934,10 @@ async def handle_bound_accounts_detailed(update: Update, context: ContextTypes.D
         msg = f"❌ حدث خطأ: {str(e)[:100]}"
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
-# ---------- تبنيد الحساب ----------
+# ================================================================
+# ========== تبنيد الحساب ==========
+# ================================================================
+
 async def handle_ban(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -994,7 +1017,430 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
+# ================================================================
+# ========== الخدمات الجديدة (من ملف endpoints.json) ==========
+# ================================================================
+
+# ---------- قائمة الأصدقاء ----------
+async def handle_friends_list(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        return
+    wait_msg = await query.edit_message_text("⏳ جاري جلب قائمة الأصدقاء...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_friends(access_token)
+        if result.get("success"):
+            friends = result.get("friends", [])
+            if friends:
+                text = "👥 **قائمة الأصدقاء**\n\n"
+                for friend in friends[:20]:
+                    name = friend.get("name", "غير معروف")
+                    uid = friend.get("uid", "غير معروف")
+                    status = "🟢 متصل" if friend.get("online") else "⚪ غير متصل"
+                    text += f"• **{name}** ({uid}) - {status}\n"
+                if len(friends) > 20:
+                    text += f"\n... وعرض {len(friends)-20} صديق آخر"
+                msg = text
+            else:
+                msg = "👥 لا يوجد أصدقاء في القائمة."
+        else:
+            msg = "⚠️ لم نتمكن من جلب قائمة الأصدقاء."
+    except Exception as e:
+        msg = f"❌ حدث خطأ: {str(e)[:100]}"
+    await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+
+# ---------- إضافة صديق ----------
+async def handle_friend_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_friend_add_uid'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "👤 أرسل UID الشخص الذي تريد إضافته كصديق:",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    target_uid = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not target_uid.isdigit():
+        await update.message.reply_text(get_text(user_id, 'invalid_input'))
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري إرسال طلب الصداقة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = send_friend_request(access_token, target_uid)
+        if result.get("success"):
+            await wait_msg.edit_text(
+                f"✅ **تم إرسال طلب الصداقة بنجاح!**\n\n👤 المستخدم: `{target_uid}`",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل إرسال طلب الصداقة: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- حذف صديق ----------
+async def handle_friend_remove(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_friend_remove_uid'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "👤 أرسل UID الصديق الذي تريد حذفه:",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    target_uid = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not target_uid.isdigit():
+        await update.message.reply_text(get_text(user_id, 'invalid_input'))
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري حذف الصديق...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = remove_friend(access_token, target_uid)
+        if result.get("success"):
+            await wait_msg.edit_text(
+                f"✅ **تم حذف الصديق بنجاح!**\n\n👤 المستخدم: `{target_uid}`",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل حذف الصديق: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- معلومات القبيلة ----------
+async def handle_clan_info(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_clan_id_info'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "🏰 أرسل معرف القبيلة (Clan ID):",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    clan_id = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not clan_id.isdigit():
+        await update.message.reply_text("⚠️ معرف القبيلة يجب أن يكون أرقاماً.")
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري جلب معلومات القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_clan_info(access_token, clan_id)
+        if result.get("success"):
+            clan = result.get("clan", {})
+            name = clan.get("name", "غير معروف")
+            level = clan.get("level", "غير معروف")
+            members_count = clan.get("member_count", "غير معروف")
+            description = clan.get("description", "لا يوجد")
+            text = f"🏰 **معلومات القبيلة**\n\n"
+            text += f"📛 **الاسم:** {name}\n"
+            text += f"📊 **المستوى:** {level}\n"
+            text += f"👥 **عدد الأعضاء:** {members_count}\n"
+            text += f"📝 **الوصف:** {description}\n"
+            await wait_msg.edit_text(text, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل جلب معلومات القبيلة: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- أعضاء القبيلة ----------
+async def handle_clan_members(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_clan_id_members'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "🏰 أرسل معرف القبيلة (Clan ID):",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    clan_id = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not clan_id.isdigit():
+        await update.message.reply_text("⚠️ معرف القبيلة يجب أن يكون أرقاماً.")
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري جلب أعضاء القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_clan_members(access_token, clan_id)
+        if result.get("success"):
+            members = result.get("members", [])
+            if members:
+                text = "👥 **أعضاء القبيلة**\n\n"
+                for member in members[:20]:
+                    name = member.get("name", "غير معروف")
+                    role = member.get("role", "عضو")
+                    level = member.get("level", "غير معروف")
+                    text += f"• **{name}** - {role} (مستوى {level})\n"
+                if len(members) > 20:
+                    text += f"\n... وعرض {len(members)-20} عضو آخر"
+                await wait_msg.edit_text(text, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+            else:
+                await wait_msg.edit_text("👥 لا يوجد أعضاء في هذه القبيلة.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل جلب أعضاء القبيلة: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- الانضمام للقبيلة ----------
+async def handle_clan_join(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_clan_id_join'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "🏰 أرسل معرف القبيلة الذي تريد الانضمام إليها:",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    clan_id = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not clan_id.isdigit():
+        await update.message.reply_text("⚠️ معرف القبيلة يجب أن يكون أرقاماً.")
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري طلب الانضمام للقبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = request_join_clan(access_token, clan_id)
+        if result.get("success"):
+            await wait_msg.edit_text(
+                f"✅ **تم إرسال طلب الانضمام للقبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل طلب الانضمام: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- مغادرة القبيلة ----------
+async def handle_clan_quit(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    context.user_data['action'] = 'waiting_clan_id_quit'
+    context.user_data['acc_id'] = acc_id
+    await query.edit_message_text(
+        "🏰 أرسل معرف القبيلة التي تريد مغادرتها:",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+
+async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    clan_id = update.message.text.strip()
+    acc_id = context.user_data.get('acc_id')
+    if not acc_id or not clan_id.isdigit():
+        await update.message.reply_text("⚠️ معرف القبيلة يجب أن يكون أرقاماً.")
+        context.user_data['action'] = None
+        return
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await update.message.reply_text("⚠️ الحساب غير موجود.")
+        context.user_data['action'] = None
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await update.message.reply_text(get_text(user_id, 'no_access_token'))
+        context.user_data['action'] = None
+        return
+    wait_msg = await update.message.reply_text("⏳ جاري مغادرة القبيلة...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = quit_clan(access_token, clan_id)
+        if result.get("success"):
+            await wait_msg.edit_text(
+                f"✅ **تم مغادرة القبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل مغادرة القبيلة: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    context.user_data['action'] = None
+
+# ---------- إحصائيات اللاعب ----------
+async def handle_player_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        return
+    wait_msg = await query.edit_message_text("⏳ جاري جلب إحصائيات اللاعب...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_player_stats(access_token, account['id'])
+        if result.get("success"):
+            stats = result.get("stats", {})
+            text = "📊 **إحصائيات اللاعب**\n\n"
+            text += f"🏆 **المباريات:** {stats.get('matches', 'غير معروف')}\n"
+            text += f"🥇 **الفوز:** {stats.get('wins', 'غير معروف')}\n"
+            text += f"💀 **القتل:** {stats.get('kills', 'غير معروف')}\n"
+            text += f"📈 **الترتيب:** {stats.get('rank', 'غير معروف')}\n"
+            text += f"⭐ **النقاط:** {stats.get('points', 'غير معروف')}\n"
+            await wait_msg.edit_text(text, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل جلب الإحصائيات: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+
+# ---------- الحضور اليومي ----------
+async def handle_attendance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    acc_id = _extract_account_id(query.data)
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    if not account:
+        await query.edit_message_text("⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        return
+    access_token = get_access_token_for_account(account)
+    if not access_token:
+        await query.edit_message_text(get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        return
+    wait_msg = await query.edit_message_text("⏳ جاري جلب معلومات الحضور اليومي...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+    try:
+        result = get_attendance(access_token)
+        if result.get("success"):
+            attendance = result.get("attendance", {})
+            text = "📅 **الحضور اليومي**\n\n"
+            text += f"📆 **اليوم:** {attendance.get('day', 'غير معروف')}\n"
+            text += f"✅ **حالة الحضور:** {'تم الحضور' if attendance.get('checked_in') else 'لم يحضر بعد'}\n"
+            text += f"🎁 **المكافآت المتاحة:** {attendance.get('rewards', 'غير معروف')}\n"
+            await wait_msg.edit_text(text, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        else:
+            await wait_msg.edit_text(
+                f"❌ فشل جلب معلومات الحضور: {result.get('error', 'خطأ غير معروف')}",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+    except Exception as e:
+        await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+
+# ================================================================
 # ========== معالجات إدخال النصوص الأساسية ==========
+# ================================================================
+
 async def handle_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     email = update.message.text.strip()
@@ -1121,3 +1567,23 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
 async def handle_unbind_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     pass
+
+# ========== معالجات إدخال النصوص للخدمات الجديدة ==========
+
+async def handle_friend_add_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_friend_add_input(update, context)  # تم تعريفها أعلاه
+
+async def handle_friend_remove_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_friend_remove_input(update, context)  # تم تعريفها أعلاه
+
+async def handle_clan_info_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_clan_info_input(update, context)  # تم تعريفها أعلاه
+
+async def handle_clan_members_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_clan_members_input(update, context)  # تم تعريفها أعلاه
+
+async def handle_clan_join_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_clan_join_input(update, context)  # تم تعريفها أعلاه
+
+async def handle_clan_quit_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await handle_clan_quit_input(update, context)  # تم تعريفها أعلاه
