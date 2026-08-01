@@ -24,37 +24,36 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب - تحتوي فقط على الخدمات المطلوبة"""
+    """لوحة تحكم الحساب - الترتيب الجديد"""
     acc_id = account['id']
     
     keyboard = [
-        # الصف الأول: الخدمات الأساسية (تعمل بشكل جيد)
+        # الصف الأول: كشف اميل الاستعادة + كشف الروابط الفرعية
         [
-            InlineKeyboardButton("🔍 كشف الإستعادة", callback_data=f'recovery_{acc_id}'),
-            InlineKeyboardButton("🔗 كشف روابط", callback_data=f'links_{acc_id}')
+            InlineKeyboardButton("🔍 كشف اميل الإستعادة", callback_data=f'recovery_{acc_id}'),
+            InlineKeyboardButton("🔗 كشف الروابط الفرعية", callback_data=f'links_{acc_id}')
         ],
-        # الصف الثاني: OTP والتجربة
+        # الصف الثاني: الغاء ارتباط الاستعادة + إضافة/تغيير استعادة
         [
-            InlineKeyboardButton("🧪 تجربة رمز الأمان", callback_data=f'tryotp_{acc_id}'),
+            InlineKeyboardButton("⛓️‍💥 الغاء ارتباط الاستعادة", callback_data=f'unbind_{acc_id}'),
             InlineKeyboardButton("➕ إضافة/تغيير استعادة", callback_data=f'addrec_{acc_id}')
         ],
-        # الصف الثالث: حرق التوكن وسبام
+        # الصف الثالث: تجربة رمز الأمان + طلب صداقة
         [
-            InlineKeyboardButton("🔥 حرق التوكيل", callback_data=f'burn_{acc_id}'),
-            InlineKeyboardButton("📨 سبام تسجيل دخول", callback_data=f'spam_{acc_id}')
+            InlineKeyboardButton("🧪 تجربة رمز الأمان", callback_data=f'tryotp_{acc_id}'),
+            InlineKeyboardButton("👥 طلب صداقة", callback_data=f'friend_{acc_id}')
         ],
-        # الصف الرابع: طلب صداقة وفحص الحظر
+        # الصف الرابع: سبام تسجيل دخول + فحص الحظر
         [
-            InlineKeyboardButton("👥 طلب صداقة", callback_data=f'friend_{acc_id}'),
+            InlineKeyboardButton("📨 سبام تسجيل دخول", callback_data=f'spam_{acc_id}'),
             InlineKeyboardButton("🚫 فحص الحظر", callback_data=f'bancheck_{acc_id}')
         ],
-        # ===== الخدمات الجديدة (المتقدمة) =====
-        # الصف الخامس: تغيير البريد (طريقتان)
+        # الصف الخامس: تغيير البريد (OTP) + تغيير البريد (كود أمان)
         [
             InlineKeyboardButton("🔄 تغيير البريد (OTP)", callback_data=f'change_bind_otp_{acc_id}'),
             InlineKeyboardButton("🔄 تغيير البريد (كود أمان)", callback_data=f'change_bind_sec_{acc_id}')
         ],
-        # الصف السادس: إلغاء الربط (طريقتان)
+        # الصف السادس: إلغاء الربط (OTP) + إلغاء الربط (كود أمان)
         [
             InlineKeyboardButton("🔓 إلغاء الربط (OTP)", callback_data=f'unbind_otp_{acc_id}'),
             InlineKeyboardButton("🔓 إلغاء الربط (كود أمان)", callback_data=f'unbind_sec_{acc_id}')
@@ -64,9 +63,9 @@ def get_account_controls(user_id, account):
             InlineKeyboardButton("❌ إلغاء طلب الربط", callback_data=f'cancel_bind_{acc_id}'),
             InlineKeyboardButton("📋 سجل الدخول", callback_data=f'login_history_{acc_id}')
         ],
-        # الصف الثامن: الروابط المفصلة + تبنيد
+        # الصف الثامن: حرق التوكن + تبنيد الحساب
         [
-            InlineKeyboardButton("🔗 الروابط المفصلة", callback_data=f'bound_accounts_{acc_id}'),
+            InlineKeyboardButton("🔥 حرق التوكن", callback_data=f'burn_{acc_id}'),
             InlineKeyboardButton("☠️ تبنيد الحساب", callback_data=f'ban_{acc_id}')
         ],
         # الصف التاسع: عودة
@@ -95,7 +94,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_data_store:
         user_data_store[user_id] = {'lang': 'ar', 'accounts': []}
     
-    # التحقق من الاشتراك
     if not db.is_subscribed(user_id):
         msg = get_text(user_id, 'subscribe_required', bot_name="mibel ff")
         keyboard = [
@@ -108,7 +106,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
         return
     
-    # عرض القائمة الرئيسية للمشتركين
     await update.message.reply_text(
         get_text(user_id, 'welcome', bot_name="mibel ff"),
         reply_markup=get_main_menu(user_id)
