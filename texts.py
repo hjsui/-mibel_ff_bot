@@ -133,63 +133,71 @@ TEXTS = {
 👨‍💻 **المطور:** iloveyoustore
 📧 **البريد الإلكتروني:** bebekred@example.com""",
         
-        # ========== رسائل الخدمات الجديدة ==========
-        'change_bind_method': "🔐 **تغيير بريد الاستعادة**\n\nاختر الطريقة المناسبة:",
-        'enter_security_code': "🔐 أرسل كود الأمان (6 أرقام):",
-        'bind_changed': "✅ تم تغيير بريد الاستعادة بنجاح!",
-        'unbind_success_v2': "✅ تم إلغاء ربط بريد الاستعادة بنجاح!",
-        'cancel_bind_success': "✅ تم إلغاء طلب الربط المعلق بنجاح!",
-        'login_history_result': "📋 **سجل تسجيل الدخول:**\n\n{history}",
-        'bound_accounts_result': "🔗 **المنصات المرتبطة:**\n\n{accounts}",
-        'ban_started': "☠️ **بدأ تبنيد الحساب...**\n\nجلسة التبنيد تعمل في الخلفية.",
-        'ban_stopped': "⏹️ **تم إيقاف تبنيد الحساب.**\n\nتم إيقاف جميع جلسات التبنيد.",
-        'ban_already_active': "⚠️ يوجد جلسة تبنيد نشطة لهذا الحساب.",
-        'ban_confirm_start': "☠️ **تبنيد الحساب**\n\n⚠️ سيتم تشغيل اتصالات مستمرة للتبنيد.\nهل تريد المتابعة؟",
-        'ban_confirm_stop': "☠️ **تبنيد الحساب**\n\n⚠️ يوجد جلسة تبنيد نشطة.\nهل تريد إيقافها؟",
-        'ban_start_failed': "❌ فشل بدء تبنيد الحساب: {error}",
-        'ban_stop_failed': "❌ فشل إيقاف تبنيد الحساب: {error}",
-        'ban_already_stopped': "ℹ️ لا توجد جلسة تبنيد نشطة لهذا الحساب.",
-        'login_history_empty': "📋 **سجل تسجيل الدخول**\n\nلا توجد سجلات تسجيل دخول متاحة.",
-        'bound_accounts_empty': "🔗 **المنصات المرتبطة**\n\nلا توجد منصات مرتبطة بهذا الحساب.",
-        
-        # ========== رسائل خطوات تغيير البريد (OTP) ==========
-        'change_bind_otp_step1': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
-        'change_bind_otp_step2': "🔑 أرسل رمز OTP الذي وصلك إلى البريد القديم:",
-        'change_bind_otp_step3': "📧 أرسل البريد الإلكتروني الجديد:",
-        'change_bind_otp_step4': "🔑 أرسل رمز OTP الذي وصلك إلى البريد الجديد:",
-        
-        # ========== رسائل خطوات تغيير البريد (كود أمان) ==========
-        'change_bind_sec_step1': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
-        'change_bind_sec_step2': "🔐 أرسل كود الأمان (6 أرقام):",
-        'change_bind_sec_step3': "📧 أرسل البريد الإلكتروني الجديد:",
-        'change_bind_sec_step4': "🔑 أرسل رمز OTP الذي وصلك إلى البريد الجديد:",
-        
-        # ========== رسائل خطوات إلغاء الربط (OTP) ==========
-        'unbind_otp_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        'unbind_otp_step2': "🔑 أرسل رمز OTP الذي وصلك إلى البريد:",
-        
-        # ========== رسائل خطوات إلغاء الربط (كود أمان) ==========
-        'unbind_sec_step1': "📧 أرسل البريد الإلكتروني المرتبط حالياً:",
-        'unbind_sec_step2': "🔐 أرسل كود الأمان (6 أرقام):",
-        
-        # ========== رسائل الخدمات المتبقية ==========
-        'friend_sent': "✅ تم إرسال طلب صداقة إلى `{uid}` بنجاح!",
-        'friend_removed': "✅ تم إلغاء طلب الصداقة من `{uid}` بنجاح!",
-        'enter_target_uid': "👤 أرسل UID المستخدم المستهدف:",
-        
-        'ban_result': """🚫 **نتيجة فحص الحظر**
-
-📊 **الحالة:** {status}
-🆔 **الـ UID:** {uid}
-👤 **الاسم:** {name}
-🌍 **المنطقة:** {region}""",
-
         # ========== رسائل الأدمن ==========
         'admin_panel': "⚙️ **لوحة تحكم الأدمن**",
         'user_list': "👥 **قائمة المستخدمين**\n{users}",
         'manage_codes': "🎫 **إدارة الأكواد**\n{code_list}",
         'reseller_panel': "💼 **لوحة تحكم الوكيل**",
         'points_balance': "⭐ **رصيد النقاط:** {points}",
+
+        # ========== الخدمات الجديدة (الأصدقاء) ==========
+        'friends_list': "👥 قائمة الأصدقاء",
+        'friend_add': "➕ إضافة صديق",
+        'friend_remove': "➖ حذف صديق",
+        'enter_friend_uid': "👤 أرسل UID الصديق:",
+        'friend_added': "✅ **تم إرسال طلب الصداقة بنجاح!**\n\n👤 المستخدم: `{uid}`",
+        'friend_removed': "✅ **تم حذف الصديق بنجاح!**\n\n👤 المستخدم: `{uid}`",
+        'friend_list_empty': "👥 لا يوجد أصدقاء في القائمة.",
+        'friend_list_result': """👥 **قائمة الأصدقاء**
+
+{friends}""",
+        
+        # ========== الخدمات الجديدة (القبيلة) ==========
+        'clan_info': "🏰 معلومات القبيلة",
+        'clan_members': "👥 أعضاء القبيلة",
+        'clan_join': "📥 الانضمام للقبيلة",
+        'clan_quit': "📤 مغادرة القبيلة",
+        'enter_clan_id': "🏰 أرسل معرف القبيلة (Clan ID):",
+        'clan_info_result': """🏰 **معلومات القبيلة**
+
+📛 **الاسم:** {name}
+📊 **المستوى:** {level}
+👥 **عدد الأعضاء:** {members}
+📝 **الوصف:** {description}""",
+        'clan_members_result': """👥 **أعضاء القبيلة**
+
+{members}""",
+        'clan_joined': "✅ **تم إرسال طلب الانضمام للقبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
+        'clan_quitted': "✅ **تم مغادرة القبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
+        'clan_not_found': "❌ لم يتم العثور على القبيلة.",
+        
+        # ========== الخدمات الجديدة (إحصائيات وحضور) ==========
+        'player_stats': "📊 إحصائيات اللاعب",
+        'attendance': "📅 الحضور اليومي",
+        'player_stats_result': """📊 **إحصائيات اللاعب**
+
+🏆 **المباريات:** {matches}
+🥇 **الفوز:** {wins}
+💀 **القتل:** {kills}
+📈 **الترتيب:** {rank}
+⭐ **النقاط:** {points}""",
+        'attendance_result': """📅 **الحضور اليومي**
+
+📆 **اليوم:** {day}
+✅ **حالة الحضور:** {status}
+🎁 **المكافآت المتاحة:** {rewards}""",
+        'attendance_checked': "✅ تم الحضور",
+        'attendance_not_checked': "❌ لم يحضر بعد",
+        
+        # ========== رسائل الخدمات الجديدة (أخطاء) ==========
+        'friend_add_failed': "❌ فشل إرسال طلب الصداقة: {error}",
+        'friend_remove_failed': "❌ فشل حذف الصديق: {error}",
+        'clan_info_failed': "❌ فشل جلب معلومات القبيلة: {error}",
+        'clan_members_failed': "❌ فشل جلب أعضاء القبيلة: {error}",
+        'clan_join_failed': "❌ فشل طلب الانضمام للقبيلة: {error}",
+        'clan_quit_failed': "❌ فشل مغادرة القبيلة: {error}",
+        'player_stats_failed': "❌ فشل جلب إحصائيات اللاعب: {error}",
+        'attendance_failed': "❌ فشل جلب معلومات الحضور: {error}",
     },
     
     'en': {
@@ -324,62 +332,70 @@ Please click (Buy Now) and complete payment to access bot services.""",
 👨‍💻 **Developer:** iloveyoustore
 📧 **Email:** bebekred@example.com""",
         
-        # ========== New Services Messages ==========
-        'change_bind_method': "🔐 **Change Recovery Email**\n\nChoose the appropriate method:",
-        'enter_security_code': "🔐 Send the security code (6 digits):",
-        'bind_changed': "✅ Recovery email changed successfully!",
-        'unbind_success_v2': "✅ Recovery email unbound successfully!",
-        'cancel_bind_success': "✅ Pending bind request cancelled successfully!",
-        'login_history_result': "📋 **Login History:**\n\n{history}",
-        'bound_accounts_result': "🔗 **Bound Platforms:**\n\n{accounts}",
-        'ban_started': "☠️ **Account Ban Started...**\n\nBan session is running in the background.",
-        'ban_stopped': "⏹️ **Account Ban Stopped.**\n\nAll ban sessions have been stopped.",
-        'ban_already_active': "⚠️ There is an active ban session for this account.",
-        'ban_confirm_start': "☠️ **Account Ban**\n\n⚠️ Continuous connections will be started for banning.\nDo you want to proceed?",
-        'ban_confirm_stop': "☠️ **Account Ban**\n\n⚠️ There is an active ban session.\nDo you want to stop it?",
-        'ban_start_failed': "❌ Failed to start account ban: {error}",
-        'ban_stop_failed': "❌ Failed to stop account ban: {error}",
-        'ban_already_stopped': "ℹ️ No active ban session for this account.",
-        'login_history_empty': "📋 **Login History**\n\nNo login history records available.",
-        'bound_accounts_empty': "🔗 **Bound Platforms**\n\nNo platforms are bound to this account.",
-        
-        # ========== Change Bind OTP Steps ==========
-        'change_bind_otp_step1': "📧 Send the old email (currently linked):",
-        'change_bind_otp_step2': "🔑 Send the OTP code received on the old email:",
-        'change_bind_otp_step3': "📧 Send the new email:",
-        'change_bind_otp_step4': "🔑 Send the OTP code received on the new email:",
-        
-        # ========== Change Bind Security Code Steps ==========
-        'change_bind_sec_step1': "📧 Send the old email (currently linked):",
-        'change_bind_sec_step2': "🔐 Send the security code (6 digits):",
-        'change_bind_sec_step3': "📧 Send the new email:",
-        'change_bind_sec_step4': "🔑 Send the OTP code received on the new email:",
-        
-        # ========== Unbind OTP Steps ==========
-        'unbind_otp_step1': "📧 Send the currently linked email:",
-        'unbind_otp_step2': "🔑 Send the OTP code received on the email:",
-        
-        # ========== Unbind Security Code Steps ==========
-        'unbind_sec_step1': "📧 Send the currently linked email:",
-        'unbind_sec_step2': "🔐 Send the security code (6 digits):",
-        
-        # ========== Remaining Services ==========
-        'friend_sent': "✅ Friend request sent to `{uid}` successfully!",
-        'friend_removed': "✅ Friend request removed from `{uid}` successfully!",
-        'enter_target_uid': "👤 Send the target user's UID:",
-        
-        'ban_result': """🚫 **Ban Check Result**
-
-📊 **Status:** {status}
-🆔 **UID:** {uid}
-👤 **Name:** {name}
-🌍 **Region:** {region}""",
-
         # ========== Admin Messages ==========
         'admin_panel': "⚙️ **Admin Panel**",
         'user_list': "👥 **User List**\n{users}",
         'manage_codes': "🎫 **Code Management**\n{code_list}",
         'reseller_panel': "💼 **Reseller Panel**",
         'points_balance': "⭐ **Points Balance:** {points}",
+
+        # ========== New Services (Friends) ==========
+        'friends_list': "👥 Friends List",
+        'friend_add': "➕ Add Friend",
+        'friend_remove': "➖ Remove Friend",
+        'enter_friend_uid': "👤 Send friend's UID:",
+        'friend_added': "✅ **Friend request sent successfully!**\n\n👤 User: `{uid}`",
+        'friend_removed': "✅ **Friend removed successfully!**\n\n👤 User: `{uid}`",
+        'friend_list_empty': "👥 No friends in the list.",
+        'friend_list_result': """👥 **Friends List**
+
+{friends}""",
+        
+        # ========== New Services (Clan) ==========
+        'clan_info': "🏰 Clan Information",
+        'clan_members': "👥 Clan Members",
+        'clan_join': "📥 Join Clan",
+        'clan_quit': "📤 Leave Clan",
+        'enter_clan_id': "🏰 Send Clan ID:",
+        'clan_info_result': """🏰 **Clan Information**
+
+📛 **Name:** {name}
+📊 **Level:** {level}
+👥 **Members:** {members}
+📝 **Description:** {description}""",
+        'clan_members_result': """👥 **Clan Members**
+
+{members}""",
+        'clan_joined': "✅ **Join request sent successfully!**\n\n🏰 Clan: `{clan_id}`",
+        'clan_quitted': "✅ **Clan left successfully!**\n\n🏰 Clan: `{clan_id}`",
+        'clan_not_found': "❌ Clan not found.",
+        
+        # ========== New Services (Stats & Attendance) ==========
+        'player_stats': "📊 Player Stats",
+        'attendance': "📅 Daily Attendance",
+        'player_stats_result': """📊 **Player Stats**
+
+🏆 **Matches:** {matches}
+🥇 **Wins:** {wins}
+💀 **Kills:** {kills}
+📈 **Rank:** {rank}
+⭐ **Points:** {points}""",
+        'attendance_result': """📅 **Daily Attendance**
+
+📆 **Day:** {day}
+✅ **Attendance Status:** {status}
+🎁 **Available Rewards:** {rewards}""",
+        'attendance_checked': "✅ Checked in",
+        'attendance_not_checked': "❌ Not checked in yet",
+        
+        # ========== New Services Errors ==========
+        'friend_add_failed': "❌ Failed to send friend request: {error}",
+        'friend_remove_failed': "❌ Failed to remove friend: {error}",
+        'clan_info_failed': "❌ Failed to get clan info: {error}",
+        'clan_members_failed': "❌ Failed to get clan members: {error}",
+        'clan_join_failed': "❌ Failed to join clan: {error}",
+        'clan_quit_failed': "❌ Failed to leave clan: {error}",
+        'player_stats_failed': "❌ Failed to get player stats: {error}",
+        'attendance_failed': "❌ Failed to get attendance info: {error}",
     }
 }
