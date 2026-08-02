@@ -15,7 +15,7 @@ from garena_api import (
     verify_identity_otp, verify_identity_sec, cancel_request,
     revoke_token, create_rebind_request, create_unbind_request,
     create_bind_request, format_recovery_info, format_platforms,
-    # الخدمات الجديدة (المصححة)
+    # الخدمات الجديدة (المصححة باستخدام JWT و Protobuf)
     get_friends, send_friend_request, remove_friend,
     get_clan_info, get_clan_members, request_join_clan, quit_clan,
     get_player_stats, get_attendance, get_login_history, get_bound_accounts_detailed,
@@ -26,15 +26,13 @@ from handlers.main_menu import get_back_button, get_main_menu, get_account_contr
 
 # ========== دالة مساعدة لاستخراج account_id ==========
 def _extract_account_id(callback_data: str) -> str:
-    """استخراج account_id من callback_data بغض النظر عن عدد الشرطات"""
     parts = callback_data.split('_')
     return parts[-1]
 
 # ================================================================
-# ========== الخدمات الأساسية (الموجودة بالفعل) ==========
+# ========== الخدمات الأساسية (الموجودة) ==========
 # ================================================================
 
-# ---------- إضافة حساب ----------
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
@@ -77,7 +75,6 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
             reply_markup=get_main_menu(user_id)
         )
 
-# ---------- تحكم في الحساب ----------
 async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -106,7 +103,6 @@ async def handle_manage_account(update: Update, context: ContextTypes.DEFAULT_TY
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ---------- حساباتي ----------
 async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -135,7 +131,6 @@ async def handle_my_accounts(update: Update, context: ContextTypes.DEFAULT_TYPE)
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-# ---------- اختيار حساب ----------
 async def handle_account_selection(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -202,7 +197,6 @@ async def handle_account_control(update: Update, context: ContextTypes.DEFAULT_T
         reply_markup=get_account_controls(user_id, account)
     )
 
-# ---------- حذف حساب ----------
 async def handle_delete_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     query = update.callback_query
@@ -879,7 +873,7 @@ async def handle_cancel_bind(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
 # ================================================================
-# ========== سجل تسجيل الدخول ==========
+# ========== سجل تسجيل الدخول (مصحح) ==========
 # ================================================================
 
 async def handle_login_history(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1102,7 +1096,7 @@ async def handle_ban_stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await wait_msg.edit_text(f"❌ حدث خطأ: {str(e)[:100]}", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
 # ================================================================
-# ========== الخدمات الجديدة (من ملف endpoints.json) ==========
+# ========== الخدمات الجديدة (باستخدام الدوال المصححة) ==========
 # ================================================================
 
 # ---------- قائمة الأصدقاء ----------
