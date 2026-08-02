@@ -140,7 +140,9 @@ TEXTS = {
         'reseller_panel': "💼 **لوحة تحكم الوكيل**",
         'points_balance': "⭐ **رصيد النقاط:** {points}",
 
+        # ================================================================
         # ========== الخدمات الجديدة (الأصدقاء) ==========
+        # ================================================================
         'friends_list': "👥 قائمة الأصدقاء",
         'friend_add': "➕ إضافة صديق",
         'friend_remove': "➖ حذف صديق",
@@ -151,8 +153,12 @@ TEXTS = {
         'friend_list_result': """👥 **قائمة الأصدقاء**
 
 {friends}""",
+        'friend_add_failed': "❌ فشل إرسال طلب الصداقة: {error}",
+        'friend_remove_failed': "❌ فشل حذف الصديق: {error}",
         
+        # ================================================================
         # ========== الخدمات الجديدة (القبيلة) ==========
+        # ================================================================
         'clan_info': "🏰 معلومات القبيلة",
         'clan_members': "👥 أعضاء القبيلة",
         'clan_join': "📥 الانضمام للقبيلة",
@@ -170,8 +176,14 @@ TEXTS = {
         'clan_joined': "✅ **تم إرسال طلب الانضمام للقبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
         'clan_quitted': "✅ **تم مغادرة القبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
         'clan_not_found': "❌ لم يتم العثور على القبيلة.",
+        'clan_info_failed': "❌ فشل جلب معلومات القبيلة: {error}",
+        'clan_members_failed': "❌ فشل جلب أعضاء القبيلة: {error}",
+        'clan_join_failed': "❌ فشل طلب الانضمام للقبيلة: {error}",
+        'clan_quit_failed': "❌ فشل مغادرة القبيلة: {error}",
         
+        # ================================================================
         # ========== الخدمات الجديدة (إحصائيات وحضور) ==========
+        # ================================================================
         'player_stats': "📊 إحصائيات اللاعب",
         'attendance': "📅 الحضور اليومي",
         'player_stats_result': """📊 **إحصائيات اللاعب**
@@ -188,16 +200,18 @@ TEXTS = {
 🎁 **المكافآت المتاحة:** {rewards}""",
         'attendance_checked': "✅ تم الحضور",
         'attendance_not_checked': "❌ لم يحضر بعد",
-        
-        # ========== رسائل الخدمات الجديدة (أخطاء) ==========
-        'friend_add_failed': "❌ فشل إرسال طلب الصداقة: {error}",
-        'friend_remove_failed': "❌ فشل حذف الصديق: {error}",
-        'clan_info_failed': "❌ فشل جلب معلومات القبيلة: {error}",
-        'clan_members_failed': "❌ فشل جلب أعضاء القبيلة: {error}",
-        'clan_join_failed': "❌ فشل طلب الانضمام للقبيلة: {error}",
-        'clan_quit_failed': "❌ فشل مغادرة القبيلة: {error}",
         'player_stats_failed': "❌ فشل جلب إحصائيات اللاعب: {error}",
         'attendance_failed': "❌ فشل جلب معلومات الحضور: {error}",
+        
+        # ================================================================
+        # ========== خدمات سجل الدخول والروابط المفصلة ==========
+        # ================================================================
+        'login_history_result': "📋 **سجل تسجيل الدخول**\n\n{records}",
+        'login_history_empty': "📋 **سجل تسجيل الدخول**\n\nلا توجد سجلات تسجيل دخول.",
+        'login_history_failed': "⚠️ لم نتمكن من جلب سجل تسجيل الدخول: {error}",
+        'bound_accounts_result': "🔗 **المنصات المرتبطة (مفصلة)**\n\n{accounts}",
+        'bound_accounts_empty': "🔗 **المنصات المرتبطة**\n\nلا توجد منصات مرتبطة بهذا الحساب.",
+        'bound_accounts_failed': "⚠️ لم نتمكن من جلب الروابط الثانوية: {error}",
     },
     
     'en': {
@@ -339,7 +353,9 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'reseller_panel': "💼 **Reseller Panel**",
         'points_balance': "⭐ **Points Balance:** {points}",
 
+        # ================================================================
         # ========== New Services (Friends) ==========
+        # ================================================================
         'friends_list': "👥 Friends List",
         'friend_add': "➕ Add Friend",
         'friend_remove': "➖ Remove Friend",
@@ -350,8 +366,12 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'friend_list_result': """👥 **Friends List**
 
 {friends}""",
+        'friend_add_failed': "❌ Failed to send friend request: {error}",
+        'friend_remove_failed': "❌ Failed to remove friend: {error}",
         
+        # ================================================================
         # ========== New Services (Clan) ==========
+        # ================================================================
         'clan_info': "🏰 Clan Information",
         'clan_members': "👥 Clan Members",
         'clan_join': "📥 Join Clan",
@@ -369,8 +389,14 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'clan_joined': "✅ **Join request sent successfully!**\n\n🏰 Clan: `{clan_id}`",
         'clan_quitted': "✅ **Clan left successfully!**\n\n🏰 Clan: `{clan_id}`",
         'clan_not_found': "❌ Clan not found.",
+        'clan_info_failed': "❌ Failed to get clan info: {error}",
+        'clan_members_failed': "❌ Failed to get clan members: {error}",
+        'clan_join_failed': "❌ Failed to join clan: {error}",
+        'clan_quit_failed': "❌ Failed to leave clan: {error}",
         
+        # ================================================================
         # ========== New Services (Stats & Attendance) ==========
+        # ================================================================
         'player_stats': "📊 Player Stats",
         'attendance': "📅 Daily Attendance",
         'player_stats_result': """📊 **Player Stats**
@@ -387,15 +413,17 @@ Please click (Buy Now) and complete payment to access bot services.""",
 🎁 **Available Rewards:** {rewards}""",
         'attendance_checked': "✅ Checked in",
         'attendance_not_checked': "❌ Not checked in yet",
-        
-        # ========== New Services Errors ==========
-        'friend_add_failed': "❌ Failed to send friend request: {error}",
-        'friend_remove_failed': "❌ Failed to remove friend: {error}",
-        'clan_info_failed': "❌ Failed to get clan info: {error}",
-        'clan_members_failed': "❌ Failed to get clan members: {error}",
-        'clan_join_failed': "❌ Failed to join clan: {error}",
-        'clan_quit_failed': "❌ Failed to leave clan: {error}",
         'player_stats_failed': "❌ Failed to get player stats: {error}",
         'attendance_failed': "❌ Failed to get attendance info: {error}",
+        
+        # ================================================================
+        # ========== Login History & Bound Accounts ==========
+        # ================================================================
+        'login_history_result': "📋 **Login History**\n\n{records}",
+        'login_history_empty': "📋 **Login History**\n\nNo login history records available.",
+        'login_history_failed': "⚠️ Failed to get login history: {error}",
+        'bound_accounts_result': "🔗 **Bound Platforms (Detailed)**\n\n{accounts}",
+        'bound_accounts_empty': "🔗 **Bound Platforms**\n\nNo platforms are bound to this account.",
+        'bound_accounts_failed': "⚠️ Failed to get bound platforms: {error}",
     }
 }
