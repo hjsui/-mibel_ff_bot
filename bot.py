@@ -19,18 +19,19 @@ from handlers.account_services import (
     handle_add_recovery_sec, handle_add_recovery_sec_input,
     handle_unbind, handle_unbind_otp, handle_unbind_otp_input,
     handle_unbind_sec, handle_unbind_sec_input,
-    handle_cancel_bind, handle_login_history, handle_bound_accounts_detailed,
+    handle_cancel_bind,
     handle_ban, handle_ban_start, handle_ban_stop,
     handle_account_selection, handle_account_control, handle_delete_account,
     handle_otp_input, handle_email_input, handle_secondary_password_input, handle_unbind_input,
-    # الخدمات الجديدة
+    # الخدمات المتقدمة (باستخدام JWT)
     handle_friends_list, handle_friend_add, handle_friend_add_input,
     handle_friend_remove, handle_friend_remove_input,
     handle_clan_info, handle_clan_info_input,
     handle_clan_members, handle_clan_members_input,
     handle_clan_join, handle_clan_join_input,
     handle_clan_quit, handle_clan_quit_input,
-    handle_player_stats, handle_attendance
+    handle_player_stats, handle_attendance,
+    handle_login_history, handle_bound_accounts_detailed
 )
 from handlers.auth_handlers import (
     handle_buy_now, handle_use_code, handle_services_explain,
@@ -158,7 +159,6 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_unbind_otp_input(update, context)
     elif action == 'waiting_unbind_sec':
         await handle_unbind_sec_input(update, context)
-    # ===== الخدمات الجديدة =====
     elif action == 'waiting_friend_add_uid':
         await handle_friend_add_input(update, context)
     elif action == 'waiting_friend_remove_uid':
@@ -210,26 +210,25 @@ def main():
     
     # ===== الخدمات الأخرى =====
     app.add_handler(CallbackQueryHandler(handle_cancel_bind, pattern='^cancel_bind_'))
-    app.add_handler(CallbackQueryHandler(handle_login_history, pattern='^login_history_'))
-    app.add_handler(CallbackQueryHandler(handle_bound_accounts_detailed, pattern='^bound_accounts_'))
     app.add_handler(CallbackQueryHandler(handle_ban, pattern='^ban_'))
     app.add_handler(CallbackQueryHandler(handle_ban_start, pattern='^ban_start_'))
     app.add_handler(CallbackQueryHandler(handle_ban_stop, pattern='^ban_stop_'))
     
-    # ===== الخدمات الجديدة (الأصدقاء) =====
+    # ===== الخدمات المتقدمة (الأصدقاء، القبيلة، إلخ) =====
     app.add_handler(CallbackQueryHandler(handle_friends_list, pattern='^friends_list_'))
     app.add_handler(CallbackQueryHandler(handle_friend_add, pattern='^friend_add_'))
     app.add_handler(CallbackQueryHandler(handle_friend_remove, pattern='^friend_remove_'))
     
-    # ===== الخدمات الجديدة (القبيلة) =====
     app.add_handler(CallbackQueryHandler(handle_clan_info, pattern='^clan_info_'))
     app.add_handler(CallbackQueryHandler(handle_clan_members, pattern='^clan_members_'))
     app.add_handler(CallbackQueryHandler(handle_clan_join, pattern='^clan_join_'))
     app.add_handler(CallbackQueryHandler(handle_clan_quit, pattern='^clan_quit_'))
     
-    # ===== الخدمات الجديدة (إحصائيات وحضور) =====
     app.add_handler(CallbackQueryHandler(handle_player_stats, pattern='^player_stats_'))
     app.add_handler(CallbackQueryHandler(handle_attendance, pattern='^attendance_'))
+    
+    app.add_handler(CallbackQueryHandler(handle_login_history, pattern='^login_history_'))
+    app.add_handler(CallbackQueryHandler(handle_bound_accounts_detailed, pattern='^bound_accounts_'))
     
     # ===== معالجات المصادقة والاشتراكات =====
     app.add_handler(CallbackQueryHandler(handle_buy_now, pattern='^buy_now$'))
