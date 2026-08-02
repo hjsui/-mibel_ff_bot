@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any, List
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-# استيراد ملفات Protobuf
+# ========== استيراد Protobuf ==========
 try:
     import MajorLoginReq_pb2 as mLpB
     import MajorLoginRes_pb2 as mLrPb
@@ -31,12 +31,10 @@ AES_KEY = bytes([89, 103, 38, 116, 99, 37, 68, 69, 117, 104, 54, 37, 90, 99, 94,
 AES_IV = bytes([54, 111, 121, 90, 68, 114, 50, 50, 69, 51, 121, 99, 104, 106, 77, 37])
 
 def _encrypt(data: bytes) -> bytes:
-    """تشفير البيانات باستخدام AES-CBC"""
     cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
     return cipher.encrypt(pad(data, 16))
 
 def _decrypt(data: bytes) -> bytes:
-    """فك تشفير البيانات باستخدام AES-CBC"""
     cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
     return unpad(cipher.decrypt(data), 16)
 
@@ -49,26 +47,16 @@ def _log_response(name, resp):
 
 # ========== خريطة المنصات ==========
 PLATFORM_MAP = {
-    1: "Garena",
-    3: "فيسبوك",
-    4: "ضيف",
-    5: "VK",
-    6: "هواوي",
-    7: "آبل",
-    8: "جوجل",
-    10: "GameCenter / Line",
-    11: "تويتر",
-    13: "Apple ID",
-    28: "Line",
-    35: "TikTok"
+    1: "Garena", 3: "فيسبوك", 4: "ضيف", 5: "VK",
+    6: "هواوي", 7: "آبل", 8: "جوجل", 10: "GameCenter / Line",
+    11: "تويتر", 13: "Apple ID", 28: "Line", 35: "TikTok"
 }
 
 # ================================================================
-# ========== دوال تحويل EAT ==========
+# ========== دوال تحويل EAT (موجودة) ==========
 # ================================================================
 
 def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) -> Dict:
-    """تحويل EAT إلى JWT أو Access Token"""
     url = "https://www.fftools.site/api/verify-token"
     headers = {
         "Content-Type": "application/json",
@@ -77,7 +65,6 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
         "Referer": "https://www.fftools.site/free-fire-token-generator"
     }
     payload = {"token": eat_url, "action": action}
-    
     for attempt in range(max_retries):
         try:
             resp = requests.post(url, json=payload, headers=headers, timeout=30)
@@ -87,28 +74,20 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
                 time.sleep(2)
                 continue
             return {"success": False, "error": f"HTTP {resp.status_code}"}
-        except requests.exceptions.Timeout:
+        except:
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return {"success": False, "error": "انتهت مهلة الاتصال"}
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(2)
-                continue
-            return {"success": False, "error": str(e)}
-    
+            return {"success": False, "error": "فشل الاتصال"}
     return {"success": False, "error": "فشل بعد عدة محاولات"}
 
 def get_access_token_for_account(account: Dict) -> Optional[str]:
-    """استخراج access_token من الحساب"""
     access_data = convert_eat(account['eat'], "eat_to_access")
     if access_data.get("success"):
         return access_data.get("result_token")
     return None
 
 def decode_jwt(jwt_token: str) -> Dict:
-    """فك تشفير JWT"""
     try:
         payload = jwt_token.split('.')[1]
         payload += '=' * (4 - len(payload) % 4)
@@ -117,11 +96,11 @@ def decode_jwt(jwt_token: str) -> Dict:
         return {}
 
 # ================================================================
-# ========== دوال الحصول على JWT من Access Token ==========
+# ========== دالة الحصول على JWT (المصححة) ==========
 # ================================================================
 
 def build_major_login(access_token: str, open_id: str, platform: int = 4) -> bytes:
-    """بناء طلب MajorLogin باستخدام Protobuf"""
+    """بناء طلب MajorLogin باستخدام Protobuf - نفس السكريبت الأصلي"""
     if not PROTOBUF_AVAILABLE or not mLpB:
         return None
     
@@ -190,7 +169,7 @@ def get_jwt_from_access_token(access_token: str) -> Optional[str]:
     الحصول على JWT من Access Token عبر MajorLogin
     """
     try:
-        # 1. الحصول على open_id من access_token
+        # 1. الحصول على open_id
         inspect_url = f"https://100067.connect.garena.com/oauth/token/inspect?token={access_token}"
         headers = {"User-Agent": "GarenaMSDK/4.0.19P9"}
         resp = requests.get(inspect_url, headers=headers, timeout=10)
@@ -232,6 +211,7 @@ def get_jwt_from_access_token(access_token: str) -> Optional[str]:
         if major_resp.status_code != 200:
             return None
         
+        # 3. فك تشفير الرد
         try:
             res = mLrPb.MajorLoginRes()
             res.ParseFromString(_decrypt(major_resp.content))
@@ -244,11 +224,10 @@ def get_jwt_from_access_token(access_token: str) -> Optional[str]:
         return None
 
 # ================================================================
-# ========== دوال معلومات الربط (الأساسية) ==========
+# ========== الخدمات الأساسية (موجودة) ==========
 # ================================================================
 
 def check_bind_info(access_token: str) -> Optional[Dict]:
-    """جلب معلومات الربط (كشف الاستعادة)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:get_bind_info"
     payload = {'app_id': "100067", 'access_token': access_token}
     headers = {
@@ -265,7 +244,6 @@ def check_bind_info(access_token: str) -> Optional[Dict]:
         return None
 
 def get_linked_platforms(access_token: str) -> Optional[Dict]:
-    """جلب المنصات المرتبطة (كشف روابط)"""
     url = "https://100067.connect.garena.com/bind/app/platform/info/get"
     headers = {
         'User-Agent': "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -280,12 +258,7 @@ def get_linked_platforms(access_token: str) -> Optional[Dict]:
     except:
         return None
 
-# ================================================================
-# ========== دوال OTP والتحقق ==========
-# ================================================================
-
 def send_otp(access_token: str, email: str) -> bool:
-    """إرسال OTP إلى البريد"""
     url = "https://100067.connect.garena.com/game/account_security/bind:send_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -309,7 +282,6 @@ def send_otp(access_token: str, email: str) -> bool:
         return False
 
 def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
-    """التحقق من OTP وإرجاع verifier_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -332,7 +304,6 @@ def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
         return None
 
 def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str]:
-    """التحقق من الهوية باستخدام OTP وإرجاع identity_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_identity"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -357,7 +328,6 @@ def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str
         return None
 
 def verify_identity_sec(access_token: str, email: str, security_code: str) -> Optional[str]:
-    """التحقق من الهوية باستخدام كود الأمان وإرجاع identity_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_identity"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -382,12 +352,7 @@ def verify_identity_sec(access_token: str, email: str, security_code: str) -> Op
     except:
         return None
 
-# ================================================================
-# ========== دوال إنشاء طلبات الربط والإلغاء ==========
-# ================================================================
-
 def create_bind_request(access_token: str, email: str, verifier_token: str, security_code: str) -> bool:
-    """إنشاء طلب ربط جديد"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_bind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -411,7 +376,6 @@ def create_bind_request(access_token: str, email: str, verifier_token: str, secu
         return False
 
 def create_rebind_request(access_token: str, identity_token: str, verifier_token: str, email: str) -> bool:
-    """إنشاء طلب تغيير الربط (إعادة ربط)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_rebind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -435,7 +399,6 @@ def create_rebind_request(access_token: str, identity_token: str, verifier_token
         return False
 
 def create_unbind_request(access_token: str, identity_token: str) -> bool:
-    """إنشاء طلب إلغاء الربط"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_unbind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -457,7 +420,6 @@ def create_unbind_request(access_token: str, identity_token: str) -> bool:
         return False
 
 def cancel_request(access_token: str) -> bool:
-    """إلغاء طلب الربط المعلق"""
     url = "https://100067.connect.garena.com/game/account_security/bind:cancel_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -474,12 +436,7 @@ def cancel_request(access_token: str) -> bool:
     except:
         return False
 
-# ================================================================
-# ========== حرق التوكن ==========
-# ================================================================
-
 def revoke_token(access_token: str) -> bool:
-    """إبطال التوكن (تسجيل الخروج الإجباري)"""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -487,478 +444,224 @@ def revoke_token(access_token: str) -> bool:
         }
         refresh_token = "1380dcb63ab3a077dc05bdf0b25ba4497c403a5b4eae96d7203010eafa6c83a8"
         url = f"https://100067.connect.garena.com/oauth/logout?access_token={access_token}&refresh_token={refresh_token}"
-        
         resp = requests.get(url, headers=headers, timeout=15)
-        
         if resp.status_code == 200:
             try:
                 data = resp.json()
                 if "error" not in data:
                     return True
-                else:
-                    logging.warning(f"revoke_token: API returned error: {data.get('error')}")
-                    return False
+                return False
             except:
                 return True
-        else:
-            logging.warning(f"revoke_token: HTTP {resp.status_code}")
-            return False
-    except Exception as e:
-        logging.error(f"revoke_token: {str(e)}")
+        return False
+    except:
         return False
 
 # ================================================================
-# ========== خدمات الأصدقاء (مصححة) ==========
+# ========== الخدمات الجديدة (المصححة النهائية) ==========
 # ================================================================
 
+def _make_protobuf_request(endpoint: str, jwt_token: str, data: bytes = b"") -> Dict:
+    """
+    دالة مساعدة لإرسال طلب Protobuf مشفر إلى endpoint معين
+    """
+    headers = {
+        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-Unity-Version": "2018.4.11f1",
+        "X-GA": "v1 1",
+        "ReleaseVersion": "OB53",
+        "Authorization": f"Bearer {jwt_token}",
+        "Connection": "close",
+        "Accept-Encoding": "gzip, deflate, br"
+    }
+    try:
+        resp = requests.post(
+            f"https://clientbp.ggpolarbear.com/{endpoint}",
+            headers=headers,
+            data=_encrypt(data) if data else _encrypt(b""),
+            timeout=15,
+            verify=False
+        )
+        if resp.status_code == 200:
+            try:
+                decrypted = _decrypt(resp.content)
+                return {"success": True, "data": json.loads(decrypted)}
+            except:
+                return {"success": True, "data": {}}
+        else:
+            return {"success": False, "error": f"HTTP {resp.status_code}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
 def get_friends(access_token: str) -> Dict:
-    """جلب قائمة الأصدقاء باستخدام JWT"""
     result = {"success": False, "friends": [], "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetFriend"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        # طلب فارغ مشفر (كما في اللعبة)
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                # محاولة فك التشفير
-                decrypted = _decrypt(resp.content)
-                # محاولة تحليل JSON
-                json_data = json.loads(decrypted)
-                result["success"] = True
-                result["friends"] = json_data.get("friends", [])
-            except:
-                result["success"] = True
-                result["friends"] = []
+        resp_data = _make_protobuf_request("GetFriend", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["friends"] = resp_data.get("data", {}).get("friends", [])
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "خطأ غير معروف")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def send_friend_request(access_token: str, target_uid: str) -> Dict:
-    """إرسال طلب صداقة إلى UID معين"""
     result = {"success": False, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/RequestAddingFriend"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        # بناء الطلب المشفر
-        # decrypted_hex = "08fe9fbe801910e890b8fe2418182008"
-        # هذا يعني: account_id + target_uid
-        # سنبني طلب بسيط
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                if json_data.get("result") == 0:
-                    result["success"] = True
-                else:
-                    result["error"] = json_data.get("error", "فشل إرسال الطلب")
-            except:
-                result["success"] = True
+        resp_data = _make_protobuf_request("RequestAddingFriend", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل إرسال الطلب")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def remove_friend(access_token: str, friend_uid: str) -> Dict:
-    """حذف صديق من القائمة"""
     result = {"success": False, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/RemoveFriend"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                if json_data.get("result") == 0:
-                    result["success"] = True
-                else:
-                    result["error"] = json_data.get("error", "فشل حذف الصديق")
-            except:
-                result["success"] = True
+        resp_data = _make_protobuf_request("RemoveFriend", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل حذف الصديق")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
-# ================================================================
-# ========== خدمات القبيلة (مصححة) ==========
-# ================================================================
-
 def get_clan_info(access_token: str, clan_id: str) -> Dict:
-    """جلب معلومات القبيلة"""
     result = {"success": False, "clan": None, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetClanInfoByClanID"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                result["success"] = True
-                result["clan"] = json_data
-            except:
-                result["success"] = True
-                result["clan"] = {"name": "غير معروف", "level": "غير معروف"}
+        resp_data = _make_protobuf_request("GetClanInfoByClanID", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["clan"] = resp_data.get("data", {})
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل جلب معلومات القبيلة")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def get_clan_members(access_token: str, clan_id: str) -> Dict:
-    """جلب أعضاء القبيلة"""
     result = {"success": False, "members": [], "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetClanMembers"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                result["success"] = True
-                result["members"] = json_data.get("members", [])
-            except:
-                result["success"] = True
-                result["members"] = []
+        resp_data = _make_protobuf_request("GetClanMembers", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["members"] = resp_data.get("data", {}).get("members", [])
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل جلب أعضاء القبيلة")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def request_join_clan(access_token: str, clan_id: str) -> Dict:
-    """طلب الانضمام للقبيلة"""
     result = {"success": False, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/RequestJoinClan"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                if json_data.get("result") == 0:
-                    result["success"] = True
-                else:
-                    result["error"] = json_data.get("error", "فشل الانضمام")
-            except:
-                result["success"] = True
+        resp_data = _make_protobuf_request("RequestJoinClan", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل الانضمام للقبيلة")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def quit_clan(access_token: str, clan_id: str) -> Dict:
-    """مغادرة القبيلة"""
     result = {"success": False, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/QuitClan"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                if json_data.get("result") == 0:
-                    result["success"] = True
-                else:
-                    result["error"] = json_data.get("error", "فشل المغادرة")
-            except:
-                result["success"] = True
+        resp_data = _make_protobuf_request("QuitClan", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل مغادرة القبيلة")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
-# ================================================================
-# ========== خدمات الإحصائيات والحضور (مصححة) ==========
-# ================================================================
-
 def get_player_stats(access_token: str, account_id: str = None) -> Dict:
-    """جلب إحصائيات اللاعب"""
     result = {"success": False, "stats": None, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetPlayerStats"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                result["success"] = True
-                result["stats"] = json_data
-            except:
-                result["success"] = True
-                result["stats"] = {"matches": "غير معروف", "wins": "غير معروف"}
+        resp_data = _make_protobuf_request("GetPlayerStats", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["stats"] = resp_data.get("data", {})
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل جلب الإحصائيات")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def get_attendance(access_token: str) -> Dict:
-    """جلب معلومات الحضور اليومي"""
     result = {"success": False, "attendance": None, "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetAttendance"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                result["success"] = True
-                result["attendance"] = json_data
-            except:
-                result["success"] = True
-                result["attendance"] = {"day": "غير معروف", "checked_in": False}
+        resp_data = _make_protobuf_request("GetAttendance", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["attendance"] = resp_data.get("data", {})
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل جلب الحضور")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
-# ================================================================
-# ========== خدمات أخرى ==========
-# ================================================================
-
 def get_login_history(access_token: str) -> Dict:
-    """جلب سجل تسجيل الدخول"""
     result = {"success": False, "records": [], "error": None}
-    
     try:
         jwt_token = get_jwt_from_access_token(access_token)
         if not jwt_token:
             result["error"] = "فشل الحصول على JWT"
             return result
-        
-        url = "https://clientbp.ggpolarbear.com/GetLoginHistory"
-        headers = {
-            "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "X-Unity-Version": "2018.4.11f1",
-            "X-GA": "v1 1",
-            "ReleaseVersion": "OB53",
-            "Authorization": f"Bearer {jwt_token}",
-            "Connection": "close",
-            "Accept-Encoding": "gzip, deflate, br"
-        }
-        
-        data = _encrypt(b"")
-        
-        resp = requests.post(url, headers=headers, data=data, timeout=15, verify=False)
-        
-        if resp.status_code == 200:
-            try:
-                json_data = resp.json()
-                result["success"] = True
-                result["records"] = json_data.get("records", [])
-            except:
-                result["success"] = True
-                result["records"] = []
+        resp_data = _make_protobuf_request("GetLoginHistory", jwt_token)
+        if resp_data.get("success"):
+            result["success"] = True
+            result["records"] = resp_data.get("data", {}).get("records", [])
         else:
-            result["error"] = f"HTTP {resp.status_code}"
-            
+            result["error"] = resp_data.get("error", "فشل جلب سجل الدخول")
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
 def get_bound_accounts_detailed(access_token: str) -> Dict:
-    """جلب المنصات المرتبطة بشكل مفصل"""
     result = {"success": False, "bounded": [], "available": [], "error": None}
-    
     try:
         url = "https://100067.connect.garena.com/bind/app/platform/info/get"
         headers = {
@@ -966,50 +669,28 @@ def get_bound_accounts_detailed(access_token: str) -> Dict:
             "Connection": "Keep-Alive",
             "Accept-Encoding": "gzip"
         }
-        
         resp = requests.get(url, params={'access_token': access_token}, headers=headers, timeout=15)
-        
         if resp.status_code == 200:
             data = resp.json()
             bounded = data.get("bounded_accounts", [])
             available = data.get("available_platforms", [])
-            
             result["success"] = True
-            result["bounded"] = []
-            for p_id in bounded:
-                p_name = PLATFORM_MAP.get(p_id, f"Unknown ({p_id})")
-                result["bounded"].append({"id": p_id, "name": p_name})
-            
-            result["available"] = []
-            for p_id in available:
-                p_name = PLATFORM_MAP.get(p_id, f"Unknown ({p_id})")
-                result["available"].append({"id": p_id, "name": p_name})
+            result["bounded"] = [{"id": p, "name": PLATFORM_MAP.get(p, f"Unknown ({p})")} for p in bounded]
+            result["available"] = [{"id": p, "name": PLATFORM_MAP.get(p, f"Unknown ({p})")} for p in available]
         else:
             result["error"] = f"HTTP {resp.status_code}"
-            
     except Exception as e:
         result["error"] = str(e)
-    
     return result
 
-# ================================================================
-# ========== دوال مساعدة ==========
-# ================================================================
-
 def get_player_info(access_token: str) -> Dict:
-    """جلب معلومات اللاعب من التوكن"""
     result = {"success": False, "nickname": None, "uid": None, "region": None}
-    
     try:
         url = f"https://api-otrss.garena.com/support/callback/?access_token={access_token}"
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        }
-        
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         resp = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
         parsed = urllib.parse.urlparse(resp.url)
         params = urllib.parse.parse_qs(parsed.query)
-        
         if 'access_token' in params:
             result["success"] = True
             result["nickname"] = urllib.parse.unquote(params.get('nickname', [''])[0])
@@ -1017,19 +698,13 @@ def get_player_info(access_token: str) -> Dict:
             result["region"] = params.get('region', [''])[0]
     except:
         pass
-    
     return result
 
-# ================================================================
 # ========== دوال تنسيق النتائج ==========
-# ================================================================
-
 def format_recovery_info(bind_data: dict) -> dict:
-    """تنسيق معلومات الاستعادة"""
     current_email = bind_data.get("email", "")
     pending_email = bind_data.get("email_to_be", "")
     countdown = bind_data.get("request_exec_countdown", 0)
-    
     if current_email and pending_email and current_email != pending_email:
         status = "🔄 جاري تغيير البريد"
         explanation = f"هذا الحساب في طور تغيير بريد الاستعادة من `{current_email}` إلى `{pending_email}`."
@@ -1045,7 +720,6 @@ def format_recovery_info(bind_data: dict) -> dict:
     else:
         status = "❌ لا يوجد بريد للاستعادة"
         explanation = "هذا الحساب غير مربوط بأي بريد إلكتروني للاستعادة."
-    
     return {
         'current_email': current_email or 'غير موجود',
         'pending_email': pending_email or 'لا يوجد',
@@ -1055,11 +729,9 @@ def format_recovery_info(bind_data: dict) -> dict:
     }
 
 def format_platforms(platforms_data: dict) -> str:
-    """تنسيق المنصات المرتبطة"""
     bounded = platforms_data.get("bounded_accounts", [])
     if not bounded:
         return "⚠️ الحساب ليس مربوط بأي منصة."
-    
     lines = []
     for acc in bounded:
         platform_id = acc.get('platform')
