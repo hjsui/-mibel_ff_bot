@@ -172,12 +172,17 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif action == 'waiting_clan_id_quit':
         await handle_clan_quit_input(update, context)
     else:
+        # معالجة إضافة الحساب (يدعم الآن الاستخراج المباشر من الرابط)
         await handle_add_account(update, context)
 
 # ========== الوظيفة الرئيسية ==========
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
+    
+    # إضافة معالج الأخطاء العالمي
     app.add_error_handler(error_handler)
+    
+    # ===== الأوامر الأساسية =====
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("meow", admin_panel))
     
@@ -240,7 +245,7 @@ def main():
     # ===== معالجات الأدمن =====
     app.add_handler(CallbackQueryHandler(admin_buttons, pattern='^admin_'))
     
-    # ===== معالج النصوص =====
+    # ===== معالج النصوص (يستقبل جميع الرسائل النصية) =====
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_input))
     
     print("🤖 البوت شغال... اضغط Ctrl+C لإيقافه.")
