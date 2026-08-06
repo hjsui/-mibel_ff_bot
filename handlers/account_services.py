@@ -7,7 +7,8 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from utils import (
     get_text, get_user_accounts, get_access_token_for_account,
-    user_data_store, convert_eat, add_account, delete_account, decode_jwt
+    user_data_store, convert_eat, add_account, delete_account, decode_jwt,
+    get_eat_nickname, get_eat_account_id, get_eat_region
 )
 from garena_api import (
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
@@ -50,12 +51,16 @@ async def safe_edit_message(query, text, reply_markup=None):
 async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     text = update.message.text.strip()
+    
+    # التحقق من صحة الرابط
     if 'discstore.recargajogo.com.br' not in text and 'ticket.kiosgamer.co.id' not in text and 'eat=' not in text:
         await update.message.reply_text(
             "⚠️ أرسل رابط التوكن (EAT) الصحيح.\nمثال: https://discstore.recargajogo.com.br/?eat=...",
             reply_markup=get_back_button(user_id)
         )
         return
+    
+    # عرض رسالة انتظار مع مؤقت
     wait_msg = await update.message.reply_text("⏳ جاري تحويل التوكن... (0s)")
     for i in range(1, 4):
         await asyncio.sleep(1.5)
@@ -63,15 +68,50 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
             await wait_msg.edit_text(f"⏳ جاري تحويل التوكن... ({i*1.5}s)")
         except:
             pass
+    
+    # محاولة التحويل
     jwt_data = convert_eat(text, "eat_to_jwt")
     access_data = convert_eat(text, "eat_to_access")
+    
+    # إذا فشل التحويل
     if not jwt_data.get("success") or not access_data.get("success"):
-        await wait_msg.edit_text("❌ فشل التحويل. تأكد من الرابط.", reply_markup=get_back_button(user_id))
+        # محاولة استخراج البيانات مباشرة من الرابط كحل أخير
+        nickname = get_eat_nickname(text) or "لاعب"
+        account_id = get_eat_account_id(text) or "غير معروف"
+        region = get_eat_region(text) or "ME"
+        
+        # إذا كان لدينا account_id في الرابط، نضيف الحساب حتى بدون تحويل
+        if account_id != "غير معروف":
+            if add_account(user_id, nickname, account_id, text, region):
+                msg = get_text(user_id, 'account_linked', name=nickname, id=account_id, region=region)
+                await wait_msg.edit_text(msg, reply_markup=get_main_menu(user_id))
+            else:
+                await wait_msg.edit_text(get_text(user_id, 'account_exists'), reply_markup=get_main_menu(user_id))
+            return
+        
+        # إذا لم نتمكن من استخراج أي شيء
+        await wait_msg.edit_text(
+            "❌ فشل التحويل. تأكد من الرابط وصحته.\n"
+            "قد يكون الموقع الخارجي معطلاً حالياً، جرب مرة أخرى لاحقاً.",
+            reply_markup=get_back_button(user_id)
+        )
         return
+    
+    # استخراج البيانات
     account_id = access_data.get("account_id")
     nickname = access_data.get("nickname", "لاعب")
     region = access_data.get("region", "ME")
+    
+    # إضافة الحساب
     if add_account(user_id, nickname, account_id, text, region):
+        # تخزين الـ Access Token مؤقتاً (للاستخدام السريع)
+        accounts = get_user_accounts(user_id)
+        for acc in accounts:
+            if acc['id'] == account_id:
+                acc['access_token'] = access_data.get("result_token")
+                acc['token_expiry'] = int(time.time()) + 86400  # 24 ساعة
+                break
+        
         msg = get_text(user_id, 'account_linked', name=nickname, id=account_id, region=region)
         await wait_msg.edit_text(msg, reply_markup=get_main_menu(user_id))
     else:
