@@ -11,27 +11,17 @@ from handlers.main_menu import start, button_handler, get_main_menu, get_back_bu
 from handlers.account_services import (
     # الخدمات الأساسية
     handle_add_account, handle_manage_account, handle_my_accounts,
-    handle_recovery, handle_links, handle_try_otp,
-    handle_friend_start, handle_friend_input,
-    handle_spam_login, handle_ban_check,
+    handle_recovery, handle_links, handle_try_otp, handle_spam_login,
     handle_burn_token,
-    handle_add_recovery, handle_add_recovery_otp, handle_add_recovery_otp_input,
-    handle_add_recovery_sec, handle_add_recovery_sec_input,
-    handle_unbind, handle_unbind_otp, handle_unbind_otp_input,
-    handle_unbind_sec, handle_unbind_sec_input,
-    handle_cancel_bind,
-    handle_ban, handle_ban_start, handle_ban_stop,
+    handle_add_recovery, handle_add_recovery_otp, handle_add_recovery_sec,
+    handle_unbind, handle_unbind_otp, handle_unbind_sec,
+    # الخدمات الجديدة (غير متوفرة)
+    handle_bot_otp, handle_delete_links,
+    # معالجات الحسابات
     handle_account_selection, handle_account_control, handle_delete_account,
-    handle_otp_input, handle_email_input, handle_secondary_password_input, handle_unbind_input,
-    # الخدمات المتقدمة (باستخدام JWT)
-    handle_friends_list, handle_friend_add, handle_friend_add_input,
-    handle_friend_remove, handle_friend_remove_input,
-    handle_clan_info, handle_clan_info_input,
-    handle_clan_members, handle_clan_members_input,
-    handle_clan_join, handle_clan_join_input,
-    handle_clan_quit, handle_clan_quit_input,
-    handle_player_stats, handle_attendance,
-    handle_login_history, handle_bound_accounts_detailed
+    # معالجات الإدخال (OTP)
+    handle_otp_input, handle_secondary_password_input, handle_unbind_otp_input,
+    handle_new_email_input
 )
 from handlers.auth_handlers import (
     handle_buy_now, handle_use_code, handle_services_explain,
@@ -142,35 +132,18 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if action == 'waiting_otp':
         await handle_otp_input(update, context)
     elif action == 'waiting_email':
-        await handle_email_input(update, context)
+        # تم تعطيل هذه الحالة، لكن نضعها تحسباً
+        await update.message.reply_text("⚠️ هذه الخدمة غير متوفرة حالياً.")
+        context.user_data['action'] = None
     elif action == 'waiting_secondary_password':
         await handle_secondary_password_input(update, context)
     elif action == 'waiting_unbind_input':
-        await handle_unbind_input(update, context)
-    elif action == 'waiting_friend_uid':
-        await handle_friend_input(update, context)
+        await handle_unbind_otp_input(update, context)
     elif action == 'waiting_code':
         await handle_code_input(update, context)
-    elif action == 'waiting_add_recovery_otp':
-        await handle_add_recovery_otp_input(update, context)
-    elif action == 'waiting_add_recovery_sec':
-        await handle_add_recovery_sec_input(update, context)
-    elif action == 'waiting_unbind_otp':
-        await handle_unbind_otp_input(update, context)
-    elif action == 'waiting_unbind_sec':
-        await handle_unbind_sec_input(update, context)
-    elif action == 'waiting_friend_add_uid':
-        await handle_friend_add_input(update, context)
-    elif action == 'waiting_friend_remove_uid':
-        await handle_friend_remove_input(update, context)
-    elif action == 'waiting_clan_id_info':
-        await handle_clan_info_input(update, context)
-    elif action == 'waiting_clan_id_members':
-        await handle_clan_members_input(update, context)
-    elif action == 'waiting_clan_id_join':
-        await handle_clan_join_input(update, context)
-    elif action == 'waiting_clan_id_quit':
-        await handle_clan_quit_input(update, context)
+    elif action == 'waiting_new_email':
+        # الحالة الجديدة لإضافة/تغيير الاستعادة عبر OTP
+        await handle_new_email_input(update, context)
     else:
         # معالجة إضافة الحساب (يدعم الآن الاستخراج المباشر من الرابط)
         await handle_add_account(update, context)
@@ -194,13 +167,11 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_account_control, pattern='^account_control_'))
     app.add_handler(CallbackQueryHandler(handle_delete_account, pattern='^del_'))
     
-    # ===== معالجات الخدمات الأساسية =====
+    # ===== معالجات الخدمات الأساسية (المطلوبة) =====
     app.add_handler(CallbackQueryHandler(handle_recovery, pattern='^recovery_'))
     app.add_handler(CallbackQueryHandler(handle_links, pattern='^links_'))
     app.add_handler(CallbackQueryHandler(handle_try_otp, pattern='^tryotp_'))
-    app.add_handler(CallbackQueryHandler(handle_friend_start, pattern='^friend_'))
     app.add_handler(CallbackQueryHandler(handle_spam_login, pattern='^spam_'))
-    app.add_handler(CallbackQueryHandler(handle_ban_check, pattern='^bancheck_'))
     app.add_handler(CallbackQueryHandler(handle_burn_token, pattern='^burn_'))
     
     # ===== إضافة/تغيير استعادة =====
@@ -213,27 +184,9 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
     
-    # ===== الخدمات الأخرى =====
-    app.add_handler(CallbackQueryHandler(handle_cancel_bind, pattern='^cancel_bind_'))
-    app.add_handler(CallbackQueryHandler(handle_ban, pattern='^ban_'))
-    app.add_handler(CallbackQueryHandler(handle_ban_start, pattern='^ban_start_'))
-    app.add_handler(CallbackQueryHandler(handle_ban_stop, pattern='^ban_stop_'))
-    
-    # ===== الخدمات المتقدمة (الأصدقاء، القبيلة، إلخ) =====
-    app.add_handler(CallbackQueryHandler(handle_friends_list, pattern='^friends_list_'))
-    app.add_handler(CallbackQueryHandler(handle_friend_add, pattern='^friend_add_'))
-    app.add_handler(CallbackQueryHandler(handle_friend_remove, pattern='^friend_remove_'))
-    
-    app.add_handler(CallbackQueryHandler(handle_clan_info, pattern='^clan_info_'))
-    app.add_handler(CallbackQueryHandler(handle_clan_members, pattern='^clan_members_'))
-    app.add_handler(CallbackQueryHandler(handle_clan_join, pattern='^clan_join_'))
-    app.add_handler(CallbackQueryHandler(handle_clan_quit, pattern='^clan_quit_'))
-    
-    app.add_handler(CallbackQueryHandler(handle_player_stats, pattern='^player_stats_'))
-    app.add_handler(CallbackQueryHandler(handle_attendance, pattern='^attendance_'))
-    
-    app.add_handler(CallbackQueryHandler(handle_login_history, pattern='^login_history_'))
-    app.add_handler(CallbackQueryHandler(handle_bound_accounts_detailed, pattern='^bound_accounts_'))
+    # ===== الخدمات الجديدة (غير متوفرة / ستتوفر قريباً) =====
+    app.add_handler(CallbackQueryHandler(handle_bot_otp, pattern='^bototp_'))
+    app.add_handler(CallbackQueryHandler(handle_delete_links, pattern='^dellinks_'))
     
     # ===== معالجات المصادقة والاشتراكات =====
     app.add_handler(CallbackQueryHandler(handle_buy_now, pattern='^buy_now$'))
