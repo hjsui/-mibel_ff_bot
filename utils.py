@@ -64,12 +64,13 @@ def update_account_token(user_id: int, account_id: str, access_token: str, expir
     return db.update_account_token(user_id, account_id, access_token, expiry)
 
 # ================================================================
-# ========== دوال تحويل EAT ==========
+# ========== دوال تحويل EAT (محسّنة مع بدائل) ==========
 # ================================================================
 
 def _extract_token_from_url(url: str) -> dict:
     """
     استخراج المعلومات من رابط EAT مباشرة (بدون اتصال خارجي)
+    مطابقة لسكريبتات OBITO
     """
     result = {
         "success": False,
@@ -84,6 +85,7 @@ def _extract_token_from_url(url: str) -> dict:
         parsed = urllib.parse.urlparse(url)
         params = urllib.parse.parse_qs(parsed.query)
         
+        # استخراج eat
         if 'eat' in params:
             result['eat'] = params['eat'][0]
         else:
@@ -92,6 +94,7 @@ def _extract_token_from_url(url: str) -> dict:
             if eat_match:
                 result['eat'] = eat_match.group(1)
         
+        # استخراج account_id
         if 'account_id' in params:
             result['account_id'] = params['account_id'][0]
         else:
@@ -100,6 +103,7 @@ def _extract_token_from_url(url: str) -> dict:
             if acc_match:
                 result['account_id'] = acc_match.group(1)
         
+        # استخراج nickname
         if 'nickname' in params:
             result['nickname'] = urllib.parse.unquote(params['nickname'][0])
         else:
@@ -108,6 +112,7 @@ def _extract_token_from_url(url: str) -> dict:
             if nick_match:
                 result['nickname'] = urllib.parse.unquote(nick_match.group(1))
         
+        # استخراج region
         if 'region' in params:
             result['region'] = params['region'][0]
         else:
@@ -116,6 +121,7 @@ def _extract_token_from_url(url: str) -> dict:
             if region_match:
                 result['region'] = region_match.group(1)
         
+        # استخراج access_token (إذا كان موجوداً)
         if 'access_token' in params:
             result['access_token'] = params['access_token'][0]
             result['success'] = True
@@ -137,6 +143,7 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 2) 
     
     أولاً: محاولة استخدام fftools.site.
     ثانياً: إذا فشل، محاولة استخراج المعلومات مباشرة من الرابط.
+    مطابقة لسكريبتات OBITO
     """
     url = "https://www.fftools.site/api/verify-token"
     headers = {
@@ -247,6 +254,7 @@ def extract_eat_link(text: str) -> str:
     return text.strip()
 
 def get_eat_nickname(eat_url: str) -> str:
+    """استخراج الاسم من رابط EAT"""
     try:
         if 'nickname=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -257,6 +265,7 @@ def get_eat_nickname(eat_url: str) -> str:
     return None
 
 def get_eat_account_id(eat_url: str) -> str:
+    """استخراج account_id من رابط EAT"""
     try:
         if 'account_id=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -267,6 +276,7 @@ def get_eat_account_id(eat_url: str) -> str:
     return None
 
 def get_eat_region(eat_url: str) -> str:
+    """استخراج المنطقة من رابط EAT"""
     try:
         if 'region=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -277,6 +287,7 @@ def get_eat_region(eat_url: str) -> str:
     return 'ME'
 
 def is_token_valid(account: Dict) -> bool:
+    """التحقق من صحة التوكن المخزن"""
     token = account.get('access_token')
     expiry = account.get('token_expiry')
     if not token:
