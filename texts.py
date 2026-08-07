@@ -34,18 +34,18 @@ TEXTS = {
         'account_deleted': "🗑️ تم حذف الحساب بنجاح!",
         'select_account': "🎮 اختر الحساب الذي تريد إدارته من القائمة:",
         
-        # ========== لوحة الإدارة الجديدة ==========
-        'dashboard': """⚙️ **لوحة الإدارة:**
+        # ========== لوحة الإدارة ==========
+        'dashboard': """⚙️ لوحة الإدارة:
 
-👤 **الاسم:** {name}
-🆔 **الأيدي:** {id}
-🌍 **السيرفر:** {region}
-⏱ **وقت الفحص:** {check_time}
-📅 **انتهاء التوكن:** {token_expiry}
-🔗 **حالة التوكن:** {token_status}
+👤 الاسم: {name}
+🆔 الأيدي: {id}
+🌍 السيرفر: {region}
+⏱ وقت الفحص: {check_time}
+📅 انتهاء التوكن: غير محدود
+🔗 حالة التوكن: {token_status}
 
-🤖 **التخمين الآلي:** {emulator}
-🚀 **حالة السبام:** {spam_status}""",
+🤖 التخمين الآلي: {emulator}
+🚀 حالة السبام: {spam_status}""",
         
         'account_controls': "🎮 **لوحة تحكم الحساب:**\n👤 **الاسم:** {name}\n🆔 **الأيدي:** {id}\n🌍 **السيرفر:** {region}\n📱 **التخمين الآلي:** {emulator}",
         
@@ -76,7 +76,7 @@ TEXTS = {
         'fetching_links': "⏳ جاري سحب الروابط الثانوية...",
         'links_found': "✅ تم سحب الروابط الثانوية بنجاح!\n\n{links}",
         
-        # ========== رسائل تغيير/إضافة الاستعادة (الجديدة) ==========
+        # ========== رسائل تغيير/إضافة الاستعادة ==========
         'enter_old_email': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         'enter_new_email': "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
         'enter_otp': "🔑 أرسل رمز OTP الذي وصلك إلى بريدك:",
@@ -95,16 +95,6 @@ TEXTS = {
         'request_cancelled': "✅ تم إلغاء أي طلب ربط معلق.",
         'cancel_existing_request': "⏳ جاري إلغاء أي طلب ربط سابق...",
         'email_already_bound': "⚠️ هذا البريد الإلكتروني مرتبط بالفعل بالحساب.",
-        
-        # ===== رسائل جديدة لتفاعل الاستعادة =====
-        'recovery_already_bound': "⚠️ **الحساب مربوط بالفعل بالبريد:**\n`{email}`\n\nهل تريد تغييره؟ اختر الطريقة:",
-        'recovery_not_bound': "📭 **الحساب لا يحتوي على بريد استعادة.**\n\nهل تريد إضافة بريد استعادة؟ اختر الطريقة:",
-        'method_unavailable': "🚫 **هذه الطريقة غير متوفرة حالياً.**\nيمكنك استخدام طريقة **OTP** كبديل.",
-        'feature_coming_soon': "🚧 **هذه الخدمة ستتوفر قريباً إن شاء الله.**\nترقبوا التحديثات! ✨",
-        'enter_new_email_bind': "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
-        'bind_action_success': "✅ **تمت العملية بنجاح!**\nتم {action} بريد الاستعادة بنجاح.",
-        'bind_action_change': "تغيير",
-        'bind_action_add': "إضافة",
         
         'operation_failed': "❌ فشلت العملية: {error}",
         'no_access_token': "❌ لا يوجد توكن وصول صالح لهذا الحساب.",
@@ -150,79 +140,6 @@ TEXTS = {
         'manage_codes': "🎫 **إدارة الأكواد**\n{code_list}",
         'reseller_panel': "💼 **لوحة تحكم الوكيل**",
         'points_balance': "⭐ **رصيد النقاط:** {points}",
-
-        # ================================================================
-        # ========== الخدمات الجديدة (الأصدقاء) ==========
-        # ================================================================
-        'friends_list': "👥 قائمة الأصدقاء",
-        'friend_add': "➕ إضافة صديق",
-        'friend_remove': "➖ حذف صديق",
-        'enter_friend_uid': "👤 أرسل UID الصديق:",
-        'friend_added': "✅ **تم إرسال طلب الصداقة بنجاح!**\n\n👤 المستخدم: `{uid}`",
-        'friend_removed': "✅ **تم حذف الصديق بنجاح!**\n\n👤 المستخدم: `{uid}`",
-        'friend_list_empty': "👥 لا يوجد أصدقاء في القائمة.",
-        'friend_list_result': """👥 **قائمة الأصدقاء**
-
-{friends}""",
-        'friend_add_failed': "❌ فشل إرسال طلب الصداقة: {error}",
-        'friend_remove_failed': "❌ فشل حذف الصديق: {error}",
-        
-        # ================================================================
-        # ========== الخدمات الجديدة (القبيلة) ==========
-        # ================================================================
-        'clan_info': "🏰 معلومات القبيلة",
-        'clan_members': "👥 أعضاء القبيلة",
-        'clan_join': "📥 الانضمام للقبيلة",
-        'clan_quit': "📤 مغادرة القبيلة",
-        'enter_clan_id': "🏰 أرسل معرف القبيلة (Clan ID):",
-        'clan_info_result': """🏰 **معلومات القبيلة**
-
-📛 **الاسم:** {name}
-📊 **المستوى:** {level}
-👥 **عدد الأعضاء:** {members}
-📝 **الوصف:** {description}""",
-        'clan_members_result': """👥 **أعضاء القبيلة**
-
-{members}""",
-        'clan_joined': "✅ **تم إرسال طلب الانضمام للقبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
-        'clan_quitted': "✅ **تم مغادرة القبيلة بنجاح!**\n\n🏰 القبيلة: `{clan_id}`",
-        'clan_not_found': "❌ لم يتم العثور على القبيلة.",
-        'clan_info_failed': "❌ فشل جلب معلومات القبيلة: {error}",
-        'clan_members_failed': "❌ فشل جلب أعضاء القبيلة: {error}",
-        'clan_join_failed': "❌ فشل طلب الانضمام للقبيلة: {error}",
-        'clan_quit_failed': "❌ فشل مغادرة القبيلة: {error}",
-        
-        # ================================================================
-        # ========== الخدمات الجديدة (إحصائيات وحضور) ==========
-        # ================================================================
-        'player_stats': "📊 إحصائيات اللاعب",
-        'attendance': "📅 الحضور اليومي",
-        'player_stats_result': """📊 **إحصائيات اللاعب**
-
-🏆 **المباريات:** {matches}
-🥇 **الفوز:** {wins}
-💀 **القتل:** {kills}
-📈 **الترتيب:** {rank}
-⭐ **النقاط:** {points}""",
-        'attendance_result': """📅 **الحضور اليومي**
-
-📆 **اليوم:** {day}
-✅ **حالة الحضور:** {status}
-🎁 **المكافآت المتاحة:** {rewards}""",
-        'attendance_checked': "✅ تم الحضور",
-        'attendance_not_checked': "❌ لم يحضر بعد",
-        'player_stats_failed': "❌ فشل جلب إحصائيات اللاعب: {error}",
-        'attendance_failed': "❌ فشل جلب معلومات الحضور: {error}",
-        
-        # ================================================================
-        # ========== خدمات سجل الدخول والروابط المفصلة ==========
-        # ================================================================
-        'login_history_result': "📋 **سجل تسجيل الدخول**\n\n{records}",
-        'login_history_empty': "📋 **سجل تسجيل الدخول**\n\nلا توجد سجلات تسجيل دخول.",
-        'login_history_failed': "⚠️ لم نتمكن من جلب سجل تسجيل الدخول: {error}",
-        'bound_accounts_result': "🔗 **المنصات المرتبطة (مفصلة)**\n\n{accounts}",
-        'bound_accounts_empty': "🔗 **المنصات المرتبطة**\n\nلا توجد منصات مرتبطة بهذا الحساب.",
-        'bound_accounts_failed': "⚠️ لم نتمكن من جلب الروابط الثانوية: {error}",
     },
     
     'en': {
@@ -258,18 +175,18 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'account_deleted': "🗑️ Account deleted successfully!",
         'select_account': "🎮 Choose an account to manage from the list:",
         
-        # ========== New Dashboard ==========
-        'dashboard': """⚙️ **Dashboard:**
+        # ========== Dashboard ==========
+        'dashboard': """⚙️ Dashboard:
 
-👤 **Name:** {name}
-🆔 **ID:** {id}
-🌍 **Server:** {region}
-⏱ **Check Time:** {check_time}
-📅 **Token Expiry:** {token_expiry}
-🔗 **Token Status:** {token_status}
+👤 Name: {name}
+🆔 ID: {id}
+🌍 Server: {region}
+⏱ Check Time: {check_time}
+📅 Token Expiry: Unlimited
+🔗 Token Status: {token_status}
 
-🤖 **Emulator:** {emulator}
-🚀 **Spam Status:** {spam_status}""",
+🤖 Emulator: {emulator}
+🚀 Spam Status: {spam_status}""",
         
         'account_controls': "🎮 **Account Control Panel:**\n👤 **Name:** {name}\n🆔 **ID:** {id}\n🌍 **Server:** {region}\n📱 **Emulator:** {emulator}",
         
@@ -300,7 +217,7 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'fetching_links': "⏳ Fetching secondary links...",
         'links_found': "✅ Secondary links retrieved successfully!\n\n{links}",
         
-        # ========== Recovery Change/Add (New) ==========
+        # ========== Recovery Change/Add ==========
         'enter_old_email': "📧 Send the old email (currently linked):",
         'enter_new_email': "📧 Send the new email to bind:",
         'enter_otp': "🔑 Send the OTP code received on your email:",
@@ -319,16 +236,6 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'request_cancelled': "✅ Pending bind request cancelled.",
         'cancel_existing_request': "⏳ Cancelling any previous bind request...",
         'email_already_bound': "⚠️ This email is already bound to the account.",
-        
-        # ===== New Recovery Interaction Messages =====
-        'recovery_already_bound': "⚠️ **Account is already bound to email:**\n`{email}`\n\nDo you want to change it? Choose method:",
-        'recovery_not_bound': "📭 **Account does not have a recovery email.**\n\nDo you want to add a recovery email? Choose method:",
-        'method_unavailable': "🚫 **This method is currently unavailable.**\nYou can use **OTP** method as an alternative.",
-        'feature_coming_soon': "🚧 **This service will be available soon, Insha'Allah.**\nStay tuned for updates! ✨",
-        'enter_new_email_bind': "📧 Send the new email you want to bind:",
-        'bind_action_success': "✅ **Operation completed successfully!**\nRecovery email {action} successfully.",
-        'bind_action_change': "changed",
-        'bind_action_add': "added",
         
         'operation_failed': "❌ Operation failed: {error}",
         'no_access_token': "❌ No valid access token for this account.",
@@ -374,78 +281,5 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'manage_codes': "🎫 **Code Management**\n{code_list}",
         'reseller_panel': "💼 **Reseller Panel**",
         'points_balance': "⭐ **Points Balance:** {points}",
-
-        # ================================================================
-        # ========== New Services (Friends) ==========
-        # ================================================================
-        'friends_list': "👥 Friends List",
-        'friend_add': "➕ Add Friend",
-        'friend_remove': "➖ Remove Friend",
-        'enter_friend_uid': "👤 Send friend's UID:",
-        'friend_added': "✅ **Friend request sent successfully!**\n\n👤 User: `{uid}`",
-        'friend_removed': "✅ **Friend removed successfully!**\n\n👤 User: `{uid}`",
-        'friend_list_empty': "👥 No friends in the list.",
-        'friend_list_result': """👥 **Friends List**
-
-{friends}""",
-        'friend_add_failed': "❌ Failed to send friend request: {error}",
-        'friend_remove_failed': "❌ Failed to remove friend: {error}",
-        
-        # ================================================================
-        # ========== New Services (Clan) ==========
-        # ================================================================
-        'clan_info': "🏰 Clan Information",
-        'clan_members': "👥 Clan Members",
-        'clan_join': "📥 Join Clan",
-        'clan_quit': "📤 Leave Clan",
-        'enter_clan_id': "🏰 Send Clan ID:",
-        'clan_info_result': """🏰 **Clan Information**
-
-📛 **Name:** {name}
-📊 **Level:** {level}
-👥 **Members:** {members}
-📝 **Description:** {description}""",
-        'clan_members_result': """👥 **Clan Members**
-
-{members}""",
-        'clan_joined': "✅ **Join request sent successfully!**\n\n🏰 Clan: `{clan_id}`",
-        'clan_quitted': "✅ **Clan left successfully!**\n\n🏰 Clan: `{clan_id}`",
-        'clan_not_found': "❌ Clan not found.",
-        'clan_info_failed': "❌ Failed to get clan info: {error}",
-        'clan_members_failed': "❌ Failed to get clan members: {error}",
-        'clan_join_failed': "❌ Failed to join clan: {error}",
-        'clan_quit_failed': "❌ Failed to leave clan: {error}",
-        
-        # ================================================================
-        # ========== New Services (Stats & Attendance) ==========
-        # ================================================================
-        'player_stats': "📊 Player Stats",
-        'attendance': "📅 Daily Attendance",
-        'player_stats_result': """📊 **Player Stats**
-
-🏆 **Matches:** {matches}
-🥇 **Wins:** {wins}
-💀 **Kills:** {kills}
-📈 **Rank:** {rank}
-⭐ **Points:** {points}""",
-        'attendance_result': """📅 **Daily Attendance**
-
-📆 **Day:** {day}
-✅ **Attendance Status:** {status}
-🎁 **Available Rewards:** {rewards}""",
-        'attendance_checked': "✅ Checked in",
-        'attendance_not_checked': "❌ Not checked in yet",
-        'player_stats_failed': "❌ Failed to get player stats: {error}",
-        'attendance_failed': "❌ Failed to get attendance info: {error}",
-        
-        # ================================================================
-        # ========== Login History & Bound Accounts ==========
-        # ================================================================
-        'login_history_result': "📋 **Login History**\n\n{records}",
-        'login_history_empty': "📋 **Login History**\n\nNo login history records available.",
-        'login_history_failed': "⚠️ Failed to get login history: {error}",
-        'bound_accounts_result': "🔗 **Bound Platforms (Detailed)**\n\n{accounts}",
-        'bound_accounts_empty': "🔗 **Bound Platforms**\n\nNo platforms are bound to this account.",
-        'bound_accounts_failed': "⚠️ Failed to get bound platforms: {error}",
     }
 }
