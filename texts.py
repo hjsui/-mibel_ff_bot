@@ -34,17 +34,18 @@ TEXTS = {
         'account_deleted': "🗑️ تم حذف الحساب بنجاح!",
         'select_account': "🎮 اختر الحساب الذي تريد إدارته من القائمة:",
         
-        # ========== لوحة الإدارة ==========
-        'dashboard': """🏷️ **لوحة الإدارة:**
+        # ========== لوحة الإدارة الجديدة ==========
+        'dashboard': """⚙️ **لوحة الإدارة:**
 
 👤 **الاسم:** {name}
-🆔 **الآيدي:** {id}
+🆔 **الأيدي:** {id}
 🌍 **السيرفر:** {region}
-📅 **وقت الفحص:** {check_time}
-⏳ **انتهاء التوكيل:** {token_expiry}
-📊 **حالة التوكيل:** {token_status}
-🤖 **الاخصين الآلي:** {emulator}
-🔄 **حالة السبام:** {spam_status}""",
+⏱ **وقت الفحص:** {check_time}
+📅 **انتهاء التوكن:** {token_expiry}
+🔗 **حالة التوكن:** {token_status}
+
+🤖 **التخمين الآلي:** {emulator}
+🚀 **حالة السبام:** {spam_status}""",
         
         'account_controls': "🎮 **لوحة تحكم الحساب:**\n👤 **الاسم:** {name}\n🆔 **الأيدي:** {id}\n🌍 **السيرفر:** {region}\n📱 **التخمين الآلي:** {emulator}",
         
@@ -75,7 +76,7 @@ TEXTS = {
         'fetching_links': "⏳ جاري سحب الروابط الثانوية...",
         'links_found': "✅ تم سحب الروابط الثانوية بنجاح!\n\n{links}",
         
-        # ========== رسائل تغيير/إضافة الاستعادة ==========
+        # ========== رسائل تغيير/إضافة الاستعادة (الجديدة) ==========
         'enter_old_email': "📧 أرسل البريد الإلكتروني القديم (المرتبط حالياً):",
         'enter_new_email': "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
         'enter_otp': "🔑 أرسل رمز OTP الذي وصلك إلى بريدك:",
@@ -94,6 +95,16 @@ TEXTS = {
         'request_cancelled': "✅ تم إلغاء أي طلب ربط معلق.",
         'cancel_existing_request': "⏳ جاري إلغاء أي طلب ربط سابق...",
         'email_already_bound': "⚠️ هذا البريد الإلكتروني مرتبط بالفعل بالحساب.",
+        
+        # ===== رسائل جديدة لتفاعل الاستعادة =====
+        'recovery_already_bound': "⚠️ **الحساب مربوط بالفعل بالبريد:**\n`{email}`\n\nهل تريد تغييره؟ اختر الطريقة:",
+        'recovery_not_bound': "📭 **الحساب لا يحتوي على بريد استعادة.**\n\nهل تريد إضافة بريد استعادة؟ اختر الطريقة:",
+        'method_unavailable': "🚫 **هذه الطريقة غير متوفرة حالياً.**\nيمكنك استخدام طريقة **OTP** كبديل.",
+        'feature_coming_soon': "🚧 **هذه الخدمة ستتوفر قريباً إن شاء الله.**\nترقبوا التحديثات! ✨",
+        'enter_new_email_bind': "📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
+        'bind_action_success': "✅ **تمت العملية بنجاح!**\nتم {action} بريد الاستعادة بنجاح.",
+        'bind_action_change': "تغيير",
+        'bind_action_add': "إضافة",
         
         'operation_failed': "❌ فشلت العملية: {error}",
         'no_access_token': "❌ لا يوجد توكن وصول صالح لهذا الحساب.",
@@ -247,17 +258,18 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'account_deleted': "🗑️ Account deleted successfully!",
         'select_account': "🎮 Choose an account to manage from the list:",
         
-        # ========== Dashboard ==========
-        'dashboard': """🏷️ **Dashboard:**
+        # ========== New Dashboard ==========
+        'dashboard': """⚙️ **Dashboard:**
 
 👤 **Name:** {name}
 🆔 **ID:** {id}
 🌍 **Server:** {region}
-📅 **Check Time:** {check_time}
-⏳ **Token Expiry:** {token_expiry}
-📊 **Token Status:** {token_status}
+⏱ **Check Time:** {check_time}
+📅 **Token Expiry:** {token_expiry}
+🔗 **Token Status:** {token_status}
+
 🤖 **Emulator:** {emulator}
-🔄 **Spam Status:** {spam_status}""",
+🚀 **Spam Status:** {spam_status}""",
         
         'account_controls': "🎮 **Account Control Panel:**\n👤 **Name:** {name}\n🆔 **ID:** {id}\n🌍 **Server:** {region}\n📱 **Emulator:** {emulator}",
         
@@ -288,7 +300,7 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'fetching_links': "⏳ Fetching secondary links...",
         'links_found': "✅ Secondary links retrieved successfully!\n\n{links}",
         
-        # ========== Recovery Change/Add ==========
+        # ========== Recovery Change/Add (New) ==========
         'enter_old_email': "📧 Send the old email (currently linked):",
         'enter_new_email': "📧 Send the new email to bind:",
         'enter_otp': "🔑 Send the OTP code received on your email:",
@@ -307,6 +319,16 @@ Please click (Buy Now) and complete payment to access bot services.""",
         'request_cancelled': "✅ Pending bind request cancelled.",
         'cancel_existing_request': "⏳ Cancelling any previous bind request...",
         'email_already_bound': "⚠️ This email is already bound to the account.",
+        
+        # ===== New Recovery Interaction Messages =====
+        'recovery_already_bound': "⚠️ **Account is already bound to email:**\n`{email}`\n\nDo you want to change it? Choose method:",
+        'recovery_not_bound': "📭 **Account does not have a recovery email.**\n\nDo you want to add a recovery email? Choose method:",
+        'method_unavailable': "🚫 **This method is currently unavailable.**\nYou can use **OTP** method as an alternative.",
+        'feature_coming_soon': "🚧 **This service will be available soon, Insha'Allah.**\nStay tuned for updates! ✨",
+        'enter_new_email_bind': "📧 Send the new email you want to bind:",
+        'bind_action_success': "✅ **Operation completed successfully!**\nRecovery email {action} successfully.",
+        'bind_action_change': "changed",
+        'bind_action_add': "added",
         
         'operation_failed': "❌ Operation failed: {error}",
         'no_access_token': "❌ No valid access token for this account.",
