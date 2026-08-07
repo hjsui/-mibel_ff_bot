@@ -23,7 +23,11 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب - الخدمات المطلوبة فقط (بدون نجوم)"""
+    """
+    لوحة تحكم الحساب - الخدمات المطلوبة فقط
+    ملاحظة: أزرار "اضافة/تغيير استعادة" تظهر بنفس الاسم،
+    لكن منطقها يختلف حسب وجود بريد (يتم التعامل معه في account_services)
+    """
     acc_id = account['id']
     
     keyboard = [
@@ -74,7 +78,9 @@ def get_language_menu():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /start"""
     user_id = update.effective_user.id
-    db.get_user(user_id)  # إنشاء المستخدم تلقائياً
+    
+    # التأكد من وجود المستخدم في قاعدة البيانات
+    db.get_user(user_id)
     
     if not db.is_subscribed(user_id):
         msg = get_text(user_id, 'subscribe_required', bot_name="mibel ff")
@@ -104,6 +110,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
+    # ===== الأزرار التي يتم التعامل معها محلياً =====
+    
     if data == 'main_menu':
         await query.edit_message_text(
             get_text(user_id, 'choose'),
@@ -178,5 +186,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # الباقي يمر إلى bot.py
+    # ===== الأزرار التي يتم تمريرها إلى bot.py =====
+    # الباقي يمر إلى معالجات bot.py
     return
