@@ -12,7 +12,7 @@ from typing import Optional, Dict, Any, List
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 
-# استيراد ملفات Protobuf
+# استيراد ملفات Protobuf (إذا كانت موجودة)
 try:
     import MajorLoginReq_pb2 as mLpB
     import MajorLoginRes_pb2 as mLrPb
@@ -23,6 +23,7 @@ except ImportError:
     mLpB = None
     mLrPb = None
     gLdPb = None
+    logging.warning("⚠️ ملفات Protobuf غير موجودة. لن تعمل بعض الخدمات المتقدمة (مثل استخراج JWT عبر MajorLogin).")
 
 logging.basicConfig(level=logging.INFO)
 
@@ -31,10 +32,12 @@ AES_KEY = bytes([89, 103, 38, 116, 99, 37, 68, 69, 117, 104, 54, 37, 90, 99, 94,
 AES_IV = bytes([54, 111, 121, 90, 68, 114, 50, 50, 69, 51, 121, 99, 104, 106, 77, 37])
 
 def _encrypt(data: bytes) -> bytes:
+    """تشفير البيانات باستخدام AES-CBC"""
     cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
     return cipher.encrypt(pad(data, 16))
 
 def _decrypt(data: bytes) -> bytes:
+    """فك تشفير البيانات باستخدام AES-CBC"""
     cipher = AES.new(AES_KEY, AES.MODE_CBC, AES_IV)
     return unpad(cipher.decrypt(data), 16)
 
@@ -53,10 +56,14 @@ PLATFORM_MAP = {
 }
 
 # ================================================================
-# ========== دوال تحويل EAT ==========
+# ========== دوال تحويل EAT (محسّنة مع بدائل) ==========
 # ================================================================
 
 def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) -> Dict:
+    """
+    تحويل EAT إلى JWT أو Access Token باستخدام fftools.site أو الاستخراج المباشر.
+    هذه النسخة مخصصة للاستخدام الداخلي، ويفضل استخدام نسخة utils.convert_eat.
+    """
     url = "https://www.fftools.site/api/verify-token"
     headers = {
         "Content-Type": "application/json",
@@ -73,18 +80,62 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
             if 500 <= resp.status_code < 600 and attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return {"success": False, "error": f"HTTP {resp.status_code}"}
-        except:
+            # إذا فشل fftools، ننتقل للاستخراج المباشر
+            break
+        except Exception as e:
+            logging.error(f"convert_eat attempt {attempt+1} failed: {e}")
             if attempt < max_retries - 1:
                 time.sleep(2)
                 continue
-            return {"success": False, "error": "فشل الاتصال"}
-    return {"success": False, "error": "فشل بعد عدة محاولات"}
+            break
+    
+    # محاولة الاستخراج المباشر من الرابط
+    try:
+        parsed = urllib.parse.urlparse(eat_url)
+        params = urllib.parse.parse_qs(parsed.query)
+        access_token = params.get('access_token', [None])[0]
+        account_id = params.get('account_id', [None])[0]
+        nickname = params.get('nickname', [None])[0]
+        region = params.get('region', [None])[0]
+        
+        if action == "eat_to_access" and access_token:
+            return {
+                "success": True,
+                "result_token": access_token,
+                "account_id": account_id,
+                "nickname": urllib.parse.unquote(nickname) if nickname else None,
+                "region": region,
+                "_source": "extracted_from_url"
+            }
+        elif action == "eat_to_jwt" and access_token:
+            # قد يكون access_token هو نفسه JWT في بعض الحالات
+            return {
+                "success": True,
+                "result_token": access_token,
+                "account_id": account_id,
+                "nickname": urllib.parse.unquote(nickname) if nickname else None,
+                "region": region,
+                "_source": "extracted_from_url_as_jwt",
+                "_warning": "تم استخدام access_token كـ JWT (قد لا يعمل مع جميع الخدمات)"
+            }
+    except Exception as e:
+        logging.error(f"Direct extraction failed: {e}")
+    
+    return {"success": False, "error": "فشل التحويل من جميع المصادر"}
 
 def get_access_token_for_account(account: Dict) -> Optional[str]:
+    """استخراج access_token من EAT المحفوظ مع تخزين مؤقت"""
+    if account.get('access_token') and account.get('token_expiry'):
+        if int(time.time()) < account.get('token_expiry', 0):
+            return account.get('access_token')
+    
     access_data = convert_eat(account['eat'], "eat_to_access")
     if access_data.get("success"):
-        return access_data.get("result_token")
+        token = access_data.get("result_token")
+        if token:
+            account['access_token'] = token
+            account['token_expiry'] = int(time.time()) + 86400
+            return token
     return None
 
 def decode_jwt(jwt_token: str) -> Dict:
@@ -229,36 +280,11 @@ def get_jwt_from_access_token(access_token: str) -> Optional[str]:
         return None
 
 # ================================================================
-# ========== دالة الحصول على JWT من EAT مباشرة (جديدة) ==========
-# ================================================================
-
-def get_jwt_from_eat(eat_url: str) -> Optional[str]:
-    """
-    محاولة استخراج JWT مباشرة من رابط EAT باستخدام fftools مع action='eat_to_jwt'
-    إذا نجحت، تعيد JWT، وإلا None.
-    """
-    try:
-        result = convert_eat(eat_url, "eat_to_jwt")
-        if result.get("success"):
-            jwt_token = result.get("result_token")
-            if jwt_token:
-                return jwt_token
-        # إذا فشلت، نحاول استخراج access_token ثم تحويله إلى JWT
-        access_data = convert_eat(eat_url, "eat_to_access")
-        if access_data.get("success"):
-            access_token = access_data.get("result_token")
-            if access_token:
-                return get_jwt_from_access_token(access_token)
-        return None
-    except Exception as e:
-        logging.error(f"get_jwt_from_eat error: {e}")
-        return None
-
-# ================================================================
-# ========== الخدمات الأساسية ==========
+# ========== الخدمات الأساسية (مستخدمة في account_services) ==========
 # ================================================================
 
 def check_bind_info(access_token: str) -> Optional[Dict]:
+    """جلب معلومات الاستعادة (البريد الحالي، المعلق، الوقت المتبقي)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:get_bind_info"
     payload = {'app_id': "100067", 'access_token': access_token}
     headers = {
@@ -270,11 +296,14 @@ def check_bind_info(access_token: str) -> Optional[Dict]:
         resp = requests.get(url, params=payload, headers=headers, timeout=10)
         if resp.status_code == 200:
             return resp.json()
+        logging.error(f"check_bind_info failed: {resp.status_code}")
         return None
-    except:
+    except Exception as e:
+        logging.error(f"check_bind_info exception: {e}")
         return None
 
 def get_linked_platforms(access_token: str) -> Optional[Dict]:
+    """جلب المنصات المرتبطة بالحساب"""
     url = "https://100067.connect.garena.com/bind/app/platform/info/get"
     headers = {
         'User-Agent': "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -285,11 +314,14 @@ def get_linked_platforms(access_token: str) -> Optional[Dict]:
         resp = requests.get(url, params={'access_token': access_token}, headers=headers, timeout=10)
         if resp.status_code == 200:
             return resp.json()
+        logging.error(f"get_linked_platforms failed: {resp.status_code}")
         return None
-    except:
+    except Exception as e:
+        logging.error(f"get_linked_platforms exception: {e}")
         return None
 
 def send_otp(access_token: str, email: str) -> bool:
+    """إرسال OTP إلى البريد الإلكتروني"""
     url = "https://100067.connect.garena.com/game/account_security/bind:send_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -308,11 +340,14 @@ def send_otp(access_token: str, email: str) -> bool:
         if resp.status_code == 200:
             result = resp.json()
             return result.get("result") == 0
+        logging.error(f"send_otp failed: {resp.status_code}")
         return False
-    except:
+    except Exception as e:
+        logging.error(f"send_otp exception: {e}")
         return False
 
 def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
+    """التحقق من OTP وإرجاع verifier_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -330,11 +365,14 @@ def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
         if resp.status_code == 200:
             result = resp.json()
             return result.get("verifier_token")
+        logging.error(f"verify_otp failed: {resp.status_code}")
         return None
-    except:
+    except Exception as e:
+        logging.error(f"verify_otp exception: {e}")
         return None
 
 def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str]:
+    """التحقق من الهوية عبر OTP وإرجاع identity_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_identity"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -354,11 +392,14 @@ def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str
             if result.get('error') == 'error_login_fail_limit':
                 return None
             return result.get("identity_token")
+        logging.error(f"verify_identity_otp failed: {resp.status_code}")
         return None
-    except:
+    except Exception as e:
+        logging.error(f"verify_identity_otp exception: {e}")
         return None
 
 def verify_identity_sec(access_token: str, email: str, security_code: str) -> Optional[str]:
+    """التحقق من الهوية عبر كلمة المرور الثانوية وإرجاع identity_token"""
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_identity"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -379,11 +420,14 @@ def verify_identity_sec(access_token: str, email: str, security_code: str) -> Op
             if result.get('error') == 'error_login_fail_limit':
                 return None
             return result.get("identity_token")
+        logging.error(f"verify_identity_sec failed: {resp.status_code}")
         return None
-    except:
+    except Exception as e:
+        logging.error(f"verify_identity_sec exception: {e}")
         return None
 
 def create_bind_request(access_token: str, email: str, verifier_token: str, security_code: str) -> bool:
+    """إنشاء طلب ربط بريد جديد (إضافة أو تغيير)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_bind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -402,11 +446,14 @@ def create_bind_request(access_token: str, email: str, verifier_token: str, secu
         if resp.status_code == 200:
             result = resp.json()
             return result.get("result") == 0
+        logging.error(f"create_bind_request failed: {resp.status_code}")
         return False
-    except:
+    except Exception as e:
+        logging.error(f"create_bind_request exception: {e}")
         return False
 
 def create_rebind_request(access_token: str, identity_token: str, verifier_token: str, email: str) -> bool:
+    """إنشاء طلب إعادة ربط بريد (تغيير)"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_rebind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -425,11 +472,14 @@ def create_rebind_request(access_token: str, identity_token: str, verifier_token
         if resp.status_code == 200:
             result = resp.json()
             return result.get("result") == 0
+        logging.error(f"create_rebind_request failed: {resp.status_code}")
         return False
-    except:
+    except Exception as e:
+        logging.error(f"create_rebind_request exception: {e}")
         return False
 
 def create_unbind_request(access_token: str, identity_token: str) -> bool:
+    """إنشاء طلب إلغاء ربط البريد"""
     url = "https://100067.connect.garena.com/game/account_security/bind:create_unbind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -446,11 +496,14 @@ def create_unbind_request(access_token: str, identity_token: str) -> bool:
         if resp.status_code == 200:
             result = resp.json()
             return result.get("result") == 0
+        logging.error(f"create_unbind_request failed: {resp.status_code}")
         return False
-    except:
+    except Exception as e:
+        logging.error(f"create_unbind_request exception: {e}")
         return False
 
 def cancel_request(access_token: str) -> bool:
+    """إلغاء أي طلب ربط معلق"""
     url = "https://100067.connect.garena.com/game/account_security/bind:cancel_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -463,11 +516,17 @@ def cancel_request(access_token: str) -> bool:
     }
     try:
         resp = requests.post(url, data=data, headers=headers, timeout=15)
-        return resp.status_code == 200
-    except:
+        if resp.status_code == 200:
+            result = resp.json()
+            return result.get("result") == 0
+        logging.error(f"cancel_request failed: {resp.status_code}")
+        return False
+    except Exception as e:
+        logging.error(f"cancel_request exception: {e}")
         return False
 
 def revoke_token(access_token: str) -> bool:
+    """إبطال التوكن (تسجيل الخروج من جميع الأجهزة)"""
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -484,255 +543,22 @@ def revoke_token(access_token: str) -> bool:
                 return False
             except:
                 return True
+        logging.error(f"revoke_token failed: {resp.status_code}")
         return False
-    except:
+    except Exception as e:
+        logging.error(f"revoke_token exception: {e}")
         return False
 
 # ================================================================
-# ========== دوال الخدمات المتقدمة (باستخدام JWT) ==========
-# ================================================================
-
-def _make_protobuf_request(endpoint: str, jwt_token: str, data: bytes = b"") -> Dict:
-    headers = {
-        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 9; G011A Build/PI)",
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-Unity-Version": "2018.4.11f1",
-        "X-GA": "v1 1",
-        "ReleaseVersion": "OB53",
-        "Authorization": f"Bearer {jwt_token}",
-        "Connection": "close",
-        "Accept-Encoding": "gzip, deflate, br"
-    }
-    try:
-        resp = requests.post(
-            f"https://clientbp.ggpolarbear.com/{endpoint}",
-            headers=headers,
-            data=_encrypt(data) if data else _encrypt(b""),
-            timeout=15,
-            verify=False
-        )
-        if resp.status_code == 200:
-            try:
-                decrypted = _decrypt(resp.content)
-                return {"success": True, "data": json.loads(decrypted)}
-            except:
-                return {"success": True, "data": {}}
-        else:
-            return {"success": False, "error": f"HTTP {resp.status_code}"}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-def get_friends(access_token: str) -> Dict:
-    result = {"success": False, "friends": [], "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetFriend", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["friends"] = resp_data.get("data", {}).get("friends", [])
-        else:
-            result["error"] = resp_data.get("error", "خطأ غير معروف")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def send_friend_request(access_token: str, target_uid: str) -> Dict:
-    result = {"success": False, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("RequestAddingFriend", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-        else:
-            result["error"] = resp_data.get("error", "فشل إرسال الطلب")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def remove_friend(access_token: str, friend_uid: str) -> Dict:
-    result = {"success": False, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("RemoveFriend", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-        else:
-            result["error"] = resp_data.get("error", "فشل حذف الصديق")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_clan_info(access_token: str, clan_id: str) -> Dict:
-    result = {"success": False, "clan": None, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetClanInfoByClanID", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["clan"] = resp_data.get("data", {})
-        else:
-            result["error"] = resp_data.get("error", "فشل جلب معلومات القبيلة")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_clan_members(access_token: str, clan_id: str) -> Dict:
-    result = {"success": False, "members": [], "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetClanMembers", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["members"] = resp_data.get("data", {}).get("members", [])
-        else:
-            result["error"] = resp_data.get("error", "فشل جلب أعضاء القبيلة")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def request_join_clan(access_token: str, clan_id: str) -> Dict:
-    result = {"success": False, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("RequestJoinClan", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-        else:
-            result["error"] = resp_data.get("error", "فشل الانضمام للقبيلة")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def quit_clan(access_token: str, clan_id: str) -> Dict:
-    result = {"success": False, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("QuitClan", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-        else:
-            result["error"] = resp_data.get("error", "فشل مغادرة القبيلة")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_player_stats(access_token: str, account_id: str = None) -> Dict:
-    result = {"success": False, "stats": None, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetPlayerStats", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["stats"] = resp_data.get("data", {})
-        else:
-            result["error"] = resp_data.get("error", "فشل جلب الإحصائيات")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_attendance(access_token: str) -> Dict:
-    result = {"success": False, "attendance": None, "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetAttendance", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["attendance"] = resp_data.get("data", {})
-        else:
-            result["error"] = resp_data.get("error", "فشل جلب الحضور")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_login_history(access_token: str) -> Dict:
-    result = {"success": False, "records": [], "error": None}
-    try:
-        jwt_token = get_jwt_from_access_token(access_token)
-        if not jwt_token:
-            result["error"] = "فشل الحصول على JWT"
-            return result
-        resp_data = _make_protobuf_request("GetLoginHistory", jwt_token)
-        if resp_data.get("success"):
-            result["success"] = True
-            result["records"] = resp_data.get("data", {}).get("records", [])
-        else:
-            result["error"] = resp_data.get("error", "فشل جلب سجل الدخول")
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_bound_accounts_detailed(access_token: str) -> Dict:
-    result = {"success": False, "bounded": [], "available": [], "error": None}
-    try:
-        url = "https://100067.connect.garena.com/bind/app/platform/info/get"
-        headers = {
-            "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
-            "Connection": "Keep-Alive",
-            "Accept-Encoding": "gzip"
-        }
-        resp = requests.get(url, params={'access_token': access_token}, headers=headers, timeout=15)
-        if resp.status_code == 200:
-            data = resp.json()
-            bounded = data.get("bounded_accounts", [])
-            available = data.get("available_platforms", [])
-            result["success"] = True
-            result["bounded"] = [{"id": p, "name": PLATFORM_MAP.get(p, f"Unknown ({p})")} for p in bounded]
-            result["available"] = [{"id": p, "name": PLATFORM_MAP.get(p, f"Unknown ({p})")} for p in available]
-        else:
-            result["error"] = f"HTTP {resp.status_code}"
-    except Exception as e:
-        result["error"] = str(e)
-    return result
-
-def get_player_info(access_token: str) -> Dict:
-    result = {"success": False, "nickname": None, "uid": None, "region": None}
-    try:
-        url = f"https://api-otrss.garena.com/support/callback/?access_token={access_token}"
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
-        parsed = urllib.parse.urlparse(resp.url)
-        params = urllib.parse.parse_qs(parsed.query)
-        if 'access_token' in params:
-            result["success"] = True
-            result["nickname"] = urllib.parse.unquote(params.get('nickname', [''])[0])
-            result["uid"] = params.get('account_id', [''])[0]
-            result["region"] = params.get('region', [''])[0]
-    except:
-        pass
-    return result
-
 # ========== دوال تنسيق النتائج ==========
+# ================================================================
+
 def format_recovery_info(bind_data: dict) -> dict:
+    """تنسيق معلومات الاستعادة إلى رسالة مفهومة"""
     current_email = bind_data.get("email", "")
     pending_email = bind_data.get("email_to_be", "")
     countdown = bind_data.get("request_exec_countdown", 0)
+    
     if current_email and pending_email and current_email != pending_email:
         status = "🔄 جاري تغيير البريد"
         explanation = f"هذا الحساب في طور تغيير بريد الاستعادة من `{current_email}` إلى `{pending_email}`."
@@ -748,6 +574,7 @@ def format_recovery_info(bind_data: dict) -> dict:
     else:
         status = "❌ لا يوجد بريد للاستعادة"
         explanation = "هذا الحساب غير مربوط بأي بريد إلكتروني للاستعادة."
+    
     return {
         'current_email': current_email or 'غير موجود',
         'pending_email': pending_email or 'لا يوجد',
@@ -757,6 +584,7 @@ def format_recovery_info(bind_data: dict) -> dict:
     }
 
 def format_platforms(platforms_data: dict) -> str:
+    """تنسيق المنصات المرتبطة إلى نص قابل للعرض"""
     bounded = platforms_data.get("bounded_accounts", [])
     if not bounded:
         return "⚠️ الحساب ليس مربوط بأي منصة."
@@ -768,3 +596,25 @@ def format_platforms(platforms_data: dict) -> str:
         info = user_info.get('email') or user_info.get('nickname') or '—'
         lines.append(f"• **{platform_name}:** `{info}`")
     return "\n".join(lines)
+
+# ================================================================
+# ========== دوال إضافية (للتوافق مع الكود القديم) ==========
+# ================================================================
+
+def get_player_info(access_token: str) -> Dict:
+    """جلب معلومات اللاعب (الاسم، الأيدي، المنطقة) - تستخدم أحياناً"""
+    result = {"success": False, "nickname": None, "uid": None, "region": None}
+    try:
+        url = f"https://api-otrss.garena.com/support/callback/?access_token={access_token}"
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        resp = requests.get(url, headers=headers, allow_redirects=True, timeout=15)
+        parsed = urllib.parse.urlparse(resp.url)
+        params = urllib.parse.parse_qs(parsed.query)
+        if 'access_token' in params:
+            result["success"] = True
+            result["nickname"] = urllib.parse.unquote(params.get('nickname', [''])[0])
+            result["uid"] = params.get('account_id', [''])[0]
+            result["region"] = params.get('region', [''])[0]
+    except Exception as e:
+        logging.error(f"get_player_info exception: {e}")
+    return result
