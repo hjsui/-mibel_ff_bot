@@ -8,8 +8,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from utils import (
     get_text, get_user_accounts, get_access_token_for_account,
-    user_data_store, convert_eat, add_account, delete_account, decode_jwt,
-    get_eat_nickname, get_eat_account_id, get_eat_region
+    add_account, delete_account, decode_jwt, convert_eat,
+    get_eat_nickname, get_eat_account_id, get_eat_region,
+    update_account_token
 )
 from garena_api import (
     check_bind_info, get_linked_platforms, send_otp, verify_otp,
@@ -98,12 +99,11 @@ async def handle_add_account(update: Update, context: ContextTypes.DEFAULT_TYPE)
     region = access_data.get("region", "ME")
     
     if add_account(user_id, nickname, account_id, text, region):
-        accounts = get_user_accounts(user_id)
-        for acc in accounts:
-            if acc['id'] == account_id:
-                acc['access_token'] = access_data.get("result_token")
-                acc['token_expiry'] = int(time.time()) + 86400
-                break
+        # تخزين الـ Access Token في قاعدة البيانات
+        access_token = access_data.get("result_token")
+        if access_token:
+            expiry = int(time.time()) + 86400  # 24 ساعة
+            update_account_token(user_id, account_id, access_token, expiry)
         
         msg = get_text(user_id, 'account_linked', name=nickname, id=account_id, region=region)
         await wait_msg.edit_text(msg, reply_markup=get_main_menu(user_id))
@@ -233,7 +233,7 @@ async def handle_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not account:
         await safe_edit_message(query, "⚠️ الحساب غير موجود.", get_main_menu(user_id))
         return
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await safe_edit_message(query, get_text(user_id, 'no_access_token'), get_back_button(user_id, f'account_control_{acc_id}'))
         return
@@ -276,7 +276,7 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not account:
         await safe_edit_message(query, "⚠️ الحساب غير موجود.", get_main_menu(user_id))
         return
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await safe_edit_message(query, get_text(user_id, 'no_access_token'), get_back_button(user_id, f'account_control_{acc_id}'))
         return
@@ -316,7 +316,7 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
         await safe_edit_message(query, "⚠️ الحساب غير موجود.", get_main_menu(user_id))
         return
 
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await safe_edit_message(query, get_text(user_id, 'no_access_token'), get_back_button(user_id, f'account_control_{acc_id}'))
         return
@@ -477,15 +477,15 @@ async def handle_burn_token(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not account:
         await safe_edit_message(query, "⚠️ الحساب غير موجود.", get_main_menu(user_id))
         return
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await safe_edit_message(query, get_text(user_id, 'no_access_token'), get_back_button(user_id, f'account_control_{acc_id}'))
         return
     wait_msg = await query.edit_message_text("⏳ جاري حرق التوكن...", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
     try:
         if revoke_token(access_token):
-            account['access_token'] = None
-            account['token_expiry'] = None
+            # حذف التوكن من قاعدة البيانات
+            update_account_token(user_id, acc_id, None, 0)
             await wait_msg.edit_text("🔥 تم حرق التوكن وإبطاله بنجاح (تم تسجيل الخروج).", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
         else:
             await wait_msg.edit_text("❌ فشل حرق التوكن. تأكد من صحة التوكن.", reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
@@ -514,7 +514,7 @@ async def handle_new_email_input(update: Update, context: ContextTypes.DEFAULT_T
         context.user_data['action'] = None
         return
 
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
@@ -559,7 +559,7 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['action'] = None
         return
     
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
@@ -581,8 +581,29 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
             context.user_data['action'] = None
         return
     
-    # ===== الحالات الأخرى (للمعالجات القديمة إذا بقيت) =====
-    # ... يمكنك إضافة حالات أخرى هنا إذا لزم الأمر ...
+    # ===== الحالة: إلغاء الربط عبر OTP =====
+    elif operation == 'unbind_otp':
+        identity_token = verify_identity_otp(access_token, email, otp)
+        if identity_token:
+            if create_unbind_request(access_token, identity_token):
+                await update.message.reply_text(
+                    f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n📧 البريد: `{email}`",
+                    reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+                )
+            else:
+                await update.message.reply_text(
+                    "❌ فشل إلغاء الربط.",
+                    reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+                )
+        else:
+            await update.message.reply_text(
+                "❌ فشل التحقق من OTP.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        context.user_data['action'] = None
+        return
+    
+    # ===== الحالات الأخرى =====
     else:
         await update.message.reply_text("⚠️ عملية غير معروفة، أعد المحاولة من البداية.")
         context.user_data['action'] = None
@@ -607,7 +628,7 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
         context.user_data['action'] = None
         return
     
-    access_token = get_access_token_for_account(account)
+    access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await update.message.reply_text(get_text(user_id, 'no_access_token'))
         context.user_data['action'] = None
@@ -615,9 +636,6 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
     
     # ===== إنهاء عملية الإضافة/التغيير =====
     if operation == 'finalize_add_change':
-        # محاولة إنشاء طلب ربط (يعمل للإضافة وللتغيير في بعض الحالات)
-        # ملاحظة: للتغيير الدقيق قد تحتاج إلى identity_token من البريد القديم،
-        # لكننا نبسطها باستخدام create_bind_request (قد ينجح حسب حالة الحساب)
         success = create_bind_request(access_token, new_email, verifier_token, sec_code)
         
         if success:
@@ -644,59 +662,9 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
         context.user_data['action'] = None
 
 # ================================================================
-# ========== دوال إضافية (للتوافق مع bot.py) ==========
+# ========== دوال إلغاء الربط عبر OTP (للتكامل) ==========
 # ================================================================
 
-# هذه الدوال موجودة بالفعل في الأعلى، لكن نعيد تعريفها للتوافق
-async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """معالج لإلغاء الارتباط عبر OTP (نسخة مبسطة)"""
-    user_id = update.effective_user.id
-    otp = update.message.text.strip()
-    acc_id = context.user_data.get('acc_id')
-    email = context.user_data.get('email')
-    
-    if not acc_id or not email:
-        await update.message.reply_text("⚠️ انتهت الجلسة، أعد المحاولة.")
-        context.user_data['action'] = None
-        return
-    
-    accounts = get_user_accounts(user_id)
-    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
-    if not account:
-        await update.message.reply_text("⚠️ الحساب غير موجود.")
-        context.user_data['action'] = None
-        return
-    
-    access_token = get_access_token_for_account(account)
-    if not access_token:
-        await update.message.reply_text(get_text(user_id, 'no_access_token'))
-        context.user_data['action'] = None
-        return
-    
-    identity_token = verify_identity_otp(access_token, email, otp)
-    if identity_token:
-        if create_unbind_request(access_token, identity_token):
-            await update.message.reply_text(
-                f"✅ **تم إلغاء ربط بريد الاستعادة بنجاح!**\n📧 البريد: `{email}`",
-                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-            )
-        else:
-            await update.message.reply_text(
-                "❌ فشل إلغاء الربط.",
-                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-            )
-    else:
-        await update.message.reply_text(
-            "❌ فشل التحقق من OTP.",
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
-    context.user_data['action'] = None
-
-# ================================================================
-# ========== دوال إلغاء الربط عبر OTP (للتكامل مع bot.py) ==========
-# ================================================================
-
-# تم دمجها في الدوال أعلاه، لكن نتركها للتوافق
 async def handle_unbind_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج لإلغاء الارتباط عبر OTP"""
-    await handle_unbind_otp_input(update, context)
+    await handle_otp_input(update, context)
