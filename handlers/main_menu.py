@@ -23,14 +23,14 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب - الخدمات المطلوبة فقط"""
+    """لوحة تحكم الحساب - الخدمات المطلوبة فقط (بدون نجوم)"""
     acc_id = account['id']
     
     keyboard = [
         # ===== الصف الأول =====
         [
-            InlineKeyboardButton("🔗 كشف الروابط الفرعية", callback_data=f'links_{acc_id}'),
-            InlineKeyboardButton("🔍 كشف اميل الاستعادة", callback_data=f'recovery_{acc_id}')
+            InlineKeyboardButton("🔍 كشف اميل الاستعادة", callback_data=f'recovery_{acc_id}'),
+            InlineKeyboardButton("🔗 كشف الروابط الفرعية", callback_data=f'links_{acc_id}')
         ],
         # ===== الصف الثاني =====
         [
@@ -74,9 +74,7 @@ def get_language_menu():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /start"""
     user_id = update.effective_user.id
-    
-    # التأكد من وجود المستخدم في قاعدة البيانات
-    db.get_user(user_id)
+    db.get_user(user_id)  # إنشاء المستخدم تلقائياً
     
     if not db.is_subscribed(user_id):
         msg = get_text(user_id, 'subscribe_required', bot_name="mibel ff")
@@ -106,8 +104,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception:
         pass
 
-    # ===== الأزرار التي يتم التعامل معها محلياً =====
-    
     if data == 'main_menu':
         await query.edit_message_text(
             get_text(user_id, 'choose'),
@@ -182,6 +178,5 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # ===== الأزرار التي يتم تمريرها إلى bot.py =====
-    # الباقي يمر إلى معالجات bot.py
+    # الباقي يمر إلى bot.py
     return
