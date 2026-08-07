@@ -40,13 +40,18 @@ class Database:
                 'subscribed': True,
                 'expiry': '2099-12-31T23:59:59',
                 'points': 9999,
-                'accounts': []
+                'accounts': [],
+                'lang': 'ar'
             }
             print(f"✅ تم تفعيل حساب المطور {dev_id}")
         else:
             self.data['users'][dev_id]['subscribed'] = True
             self.data['users'][dev_id]['expiry'] = '2099-12-31T23:59:59'
             self.data['users'][dev_id]['points'] = 9999
+            if 'accounts' not in self.data['users'][dev_id]:
+                self.data['users'][dev_id]['accounts'] = []
+            if 'lang' not in self.data['users'][dev_id]:
+                self.data['users'][dev_id]['lang'] = 'ar'
             print(f"✅ تم تحديث حساب المطور {dev_id}")
 
     def get_user(self, user_id):
@@ -56,7 +61,8 @@ class Database:
                 'subscribed': False,
                 'expiry': None,
                 'points': 0,
-                'accounts': []
+                'accounts': [],
+                'lang': 'ar'
             }
             save_db(self.data)
         return self.data['users'][user_id]
@@ -138,7 +144,8 @@ class Database:
             'subscribed': subscribed,
             'expiry': expiry,
             'points': points,
-            'accounts': []
+            'accounts': [],
+            'lang': 'ar'
         }
         save_db(self.data)
         return True
@@ -151,10 +158,24 @@ class Database:
             return True
         return False
 
-    def add_account_to_user(self, user_id, account_data):
+    # ================================================================
+    # ========== دوال إدارة حسابات المستخدم (التخزين الدائم) ==========
+    # ================================================================
+
+    def get_user_accounts(self, user_id: int) -> list:
+        """جلب قائمة الحسابات المحفوظة للمستخدم"""
+        user = self.get_user(user_id)
+        return user.get('accounts', [])
+
+    def add_account_to_user(self, user_id: int, account_data: dict) -> bool:
+        """
+        إضافة حساب جديد للمستخدم مع التحقق من عدم التكرار
+        account_data يجب أن يحتوي على: name, id, eat, region (ويمكن access_token, token_expiry)
+        """
         user = self.get_user(user_id)
         if 'accounts' not in user:
             user['accounts'] = []
+        # التحقق من عدم وجود حساب بنفس الـ id
         for acc in user['accounts']:
             if acc.get('id') == account_data.get('id'):
                 return False
@@ -162,7 +183,8 @@ class Database:
         self.update_user(user_id, user)
         return True
 
-    def remove_account_from_user(self, user_id, account_id):
+    def remove_account_from_user(self, user_id: int, account_id: str) -> bool:
+        """حذف حساب من قائمة المستخدم"""
         user = self.get_user(user_id)
         if 'accounts' not in user:
             return False
@@ -172,5 +194,40 @@ class Database:
                 self.update_user(user_id, user)
                 return True
         return False
+
+    def get_account_by_id(self, user_id: int, account_id: str) -> dict:
+        """البحث عن حساب بواسطة الـ id"""
+        accounts = self.get_user_accounts(user_id)
+        for acc in accounts:
+            if acc.get('id') == account_id:
+                return acc
+        return None
+
+    def update_account_token(self, user_id: int, account_id: str, access_token: str, expiry: int = None) -> bool:
+        """تحديث access_token وتاريخ انتهائه لحساب معين"""
+        user = self.get_user(user_id)
+        if 'accounts' not in user:
+            return False
+        for acc in user['accounts']:
+            if acc.get('id') == account_id:
+                acc['access_token'] = access_token
+                if expiry:
+                    acc['token_expiry'] = expiry
+                else:
+                    acc['token_expiry'] = int(datetime.now().timestamp()) + 86400  # 24 ساعة
+                self.update_user(user_id, user)
+                return True
+        return False
+
+    def set_user_lang(self, user_id: int, lang: str) -> None:
+        """تحديث لغة المستخدم"""
+        user = self.get_user(user_id)
+        user['lang'] = lang
+        self.update_user(user_id, user)
+
+    def get_user_lang(self, user_id: int) -> str:
+        """جلب لغة المستخدم"""
+        user = self.get_user(user_id)
+        return user.get('lang', 'ar')
 
 db = Database()
