@@ -2,9 +2,8 @@
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from utils import get_text, user_data_store, get_user_accounts
+from utils import get_text, get_user_accounts
 from database import db
-import datetime
 
 def get_main_menu(user_id):
     """القائمة الرئيسية بالترتيب المطلوب"""
@@ -75,8 +74,9 @@ def get_language_menu():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """معالج أمر /start"""
     user_id = update.effective_user.id
-    if user_id not in user_data_store:
-        user_data_store[user_id] = {'lang': 'ar', 'accounts': []}
+    
+    # التأكد من وجود المستخدم في قاعدة البيانات
+    db.get_user(user_id)
     
     if not db.is_subscribed(user_id):
         msg = get_text(user_id, 'subscribe_required', bot_name="mibel ff")
@@ -174,7 +174,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith('lang_'):
         lang = data.split('_')[1]
-        user_data_store[user_id]['lang'] = lang
+        db.set_user_lang(user_id, lang)
         confirm = get_text(user_id, 'lang_changed') if lang == 'ar' else get_text(user_id, 'lang_changed_en')
         await query.edit_message_text(
             confirm,
