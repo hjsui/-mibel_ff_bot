@@ -24,71 +24,35 @@ def get_main_menu(user_id):
     return InlineKeyboardMarkup(keyboard)
 
 def get_account_controls(user_id, account):
-    """لوحة تحكم الحساب - الترتيب النهائي مع جميع الخدمات"""
+    """لوحة تحكم الحساب - الخدمات المطلوبة فقط"""
     acc_id = account['id']
     
     keyboard = [
-        # ===== الصف الأول: خدمات الاستعادة والروابط =====
+        # ===== الصف الأول =====
         [
-            InlineKeyboardButton("🔍 كشف اميل الإستعادة", callback_data=f'recovery_{acc_id}'),
-            InlineKeyboardButton("🔗 كشف الروابط الفرعية", callback_data=f'links_{acc_id}')
+            InlineKeyboardButton("🔗 كشف الروابط الفرعية", callback_data=f'links_{acc_id}'),
+            InlineKeyboardButton("🔍 كشف اميل الاستعادة", callback_data=f'recovery_{acc_id}')
         ],
-        # ===== الصف الثاني: إدارة الاستعادة =====
+        # ===== الصف الثاني =====
         [
-            InlineKeyboardButton("⛓️‍💥 الغاء ارتباط الاستعادة", callback_data=f'unbind_{acc_id}'),
-            InlineKeyboardButton("➕ إضافة/تغيير استعادة", callback_data=f'addrec_{acc_id}')
+            InlineKeyboardButton("➕ اضافة/تغيير استعادة", callback_data=f'addrec_{acc_id}'),
+            InlineKeyboardButton("⛓️ الغاء ارتباط الاستعادة", callback_data=f'unbind_{acc_id}')
         ],
-        # ===== الصف الثالث: الأمان والصداقة =====
+        # ===== الصف الثالث =====
         [
-            InlineKeyboardButton("🧪 تجربة رمز الأمان", callback_data=f'tryotp_{acc_id}'),
-            InlineKeyboardButton("👥 طلب صداقة", callback_data=f'friend_{acc_id}')
+            InlineKeyboardButton("🧪 تجربة رمز الامان", callback_data=f'tryotp_{acc_id}'),
+            InlineKeyboardButton("🤖 بوت رمز الامان", callback_data=f'bototp_{acc_id}')
         ],
-        # ===== الصف الرابع: سبام وفحص الحظر =====
+        # ===== الصف الرابع =====
         [
-            InlineKeyboardButton("📨 سبام تسجيل دخول", callback_data=f'spam_{acc_id}'),
-            InlineKeyboardButton("🚫 فحص الحظر", callback_data=f'bancheck_{acc_id}')
+            InlineKeyboardButton("🗑️ حذف الروابط الثانوية", callback_data=f'dellinks_{acc_id}'),
+            InlineKeyboardButton("📨 سبام تسجيل الدخول", callback_data=f'spam_{acc_id}')
         ],
-        # ===== الصف الخامس: تغيير البريد =====
+        # ===== الصف الخامس =====
         [
-            InlineKeyboardButton("🔄 تغيير البريد (OTP)", callback_data=f'change_bind_otp_{acc_id}'),
-            InlineKeyboardButton("🔄 تغيير البريد (كود أمان)", callback_data=f'change_bind_sec_{acc_id}')
+            InlineKeyboardButton("🔥 حرق التوكن", callback_data=f'burn_{acc_id}')
         ],
-        # ===== الصف السادس: إلغاء الربط =====
-        [
-            InlineKeyboardButton("🔓 إلغاء الربط (OTP)", callback_data=f'unbind_otp_{acc_id}'),
-            InlineKeyboardButton("🔓 إلغاء الربط (كود أمان)", callback_data=f'unbind_sec_{acc_id}')
-        ],
-        # ===== الصف السابع: طلبات الربط وسجل الدخول =====
-        [
-            InlineKeyboardButton("❌ إلغاء طلب الربط", callback_data=f'cancel_bind_{acc_id}'),
-            InlineKeyboardButton("📋 سجل الدخول", callback_data=f'login_history_{acc_id}')
-        ],
-        # ===== الصف الثامن: حرق التوكن وتبنيد =====
-        [
-            InlineKeyboardButton("🔥 حرق التوكن", callback_data=f'burn_{acc_id}'),
-            InlineKeyboardButton("☠️ تبنيد الحساب", callback_data=f'ban_{acc_id}')
-        ],
-        # ===== الصف التاسع: خدمات الأصدقاء =====
-        [
-            InlineKeyboardButton("👥 قائمة الأصدقاء", callback_data=f'friends_list_{acc_id}'),
-            InlineKeyboardButton("➕ إضافة صديق", callback_data=f'friend_add_{acc_id}')
-        ],
-        # ===== الصف العاشر: خدمات القبيلة =====
-        [
-            InlineKeyboardButton("🏰 معلومات القبيلة", callback_data=f'clan_info_{acc_id}'),
-            InlineKeyboardButton("👥 أعضاء القبيلة", callback_data=f'clan_members_{acc_id}')
-        ],
-        # ===== الصف الحادي عشر: الانضمام/مغادرة القبيلة =====
-        [
-            InlineKeyboardButton("📥 الانضمام للقبيلة", callback_data=f'clan_join_{acc_id}'),
-            InlineKeyboardButton("📤 مغادرة القبيلة", callback_data=f'clan_quit_{acc_id}')
-        ],
-        # ===== الصف الثاني عشر: إحصائيات ومعلومات =====
-        [
-            InlineKeyboardButton("📊 إحصائيات اللاعب", callback_data=f'player_stats_{acc_id}'),
-            InlineKeyboardButton("📅 الحضور اليومي", callback_data=f'attendance_{acc_id}')
-        ],
-        # ===== الصف الثالث عشر: عودة =====
+        # ===== الصف السادس =====
         [
             InlineKeyboardButton("🔙 عودة", callback_data='main_menu')
         ]
@@ -119,7 +83,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = [
             [InlineKeyboardButton("💰 شراء الان", callback_data='buy_now')],
             [InlineKeyboardButton("🎫 استخدام كود", callback_data='use_code')],
-            [InlineKeyboardButton("📖 شرح الخ services", callback_data='services_explain')],
+            [InlineKeyboardButton("📖 شرح الخدمات", callback_data='services_explain')],
             [InlineKeyboardButton("👥 خدمة العملاء", callback_data='customer_service')],
             [InlineKeyboardButton("📱 مجموعة البوت", callback_data='bot_group')]
         ]
