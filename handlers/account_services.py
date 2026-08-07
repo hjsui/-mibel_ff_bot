@@ -282,6 +282,7 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     القائمة الرئيسية لخدمة الاستعادة: تظهر للمستخدم خيار إضافة أو تغيير حسب وجود بريد.
+    في حالة الإضافة، لا يظهر خيار "رمز الأمان" لأنه غير منطقي (لا يوجد بريد قديم للتحقق).
     """
     user_id = update.effective_user.id
     query = update.callback_query
