@@ -6,7 +6,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 from config import BOT_TOKEN
 from database import db, save_db
-from utils import get_text, user_data_store
+from utils import get_text
 from handlers.main_menu import start, button_handler, get_main_menu, get_back_button
 from handlers.account_services import (
     # الخدمات الأساسية
