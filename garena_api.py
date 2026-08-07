@@ -60,6 +60,7 @@ PLATFORM_MAP = {
 def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) -> Dict:
     """
     تحويل EAT إلى JWT أو Access Token باستخدام fftools.site أو الاستخراج المباشر.
+    مطابقة تماماً لسكريبتات OBITO.
     """
     url = "https://www.fftools.site/api/verify-token"
     headers = {
@@ -85,7 +86,7 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
                 continue
             break
     
-    # محاولة الاستخراج المباشر من الرابط
+    # محاولة الاستخراج المباشر من الرابط (كما في سكريبتات OBITO)
     try:
         parsed = urllib.parse.urlparse(eat_url)
         params = urllib.parse.parse_qs(parsed.query)
@@ -123,7 +124,10 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 3) 
 # ================================================================
 
 def check_bind_info(access_token: str) -> Optional[Dict]:
-    """جلب معلومات الاستعادة (البريد الحالي، المعلق، الوقت المتبقي)"""
+    """
+    جلب معلومات الاستعادة (البريد الحالي، المعلق، الوقت المتبقي)
+    مطابقة تماماً لسكريبتات OBITO
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:get_bind_info"
     payload = {'app_id': "100067", 'access_token': access_token}
     headers = {
@@ -160,7 +164,10 @@ def get_linked_platforms(access_token: str) -> Optional[Dict]:
         return None
 
 def send_otp(access_token: str, email: str) -> bool:
-    """إرسال OTP إلى البريد الإلكتروني"""
+    """
+    إرسال OTP إلى البريد الإلكتروني
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:send_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -186,7 +193,10 @@ def send_otp(access_token: str, email: str) -> bool:
         return False
 
 def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
-    """التحقق من OTP وإرجاع verifier_token"""
+    """
+    التحقق من OTP وإرجاع verifier_token
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_otp"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -212,7 +222,10 @@ def verify_otp(access_token: str, email: str, otp: str) -> Optional[str]:
         return None
 
 def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str]:
-    """التحقق من الهوية عبر OTP وإرجاع identity_token"""
+    """
+    التحقق من الهوية عبر OTP وإرجاع identity_token
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:verify_identity"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -239,7 +252,10 @@ def verify_identity_otp(access_token: str, email: str, otp: str) -> Optional[str
         return None
 
 def create_bind_request(access_token: str, email: str, verifier_token: str, security_code: str) -> bool:
-    """إنشاء طلب ربط بريد جديد (إضافة أو تغيير)"""
+    """
+    إنشاء طلب ربط بريد جديد (إضافة)
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:create_bind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -265,7 +281,10 @@ def create_bind_request(access_token: str, email: str, verifier_token: str, secu
         return False
 
 def create_rebind_request(access_token: str, identity_token: str, verifier_token: str, email: str) -> bool:
-    """إنشاء طلب إعادة ربط بريد (تغيير)"""
+    """
+    إنشاء طلب إعادة ربط بريد (تغيير)
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:create_rebind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -291,7 +310,10 @@ def create_rebind_request(access_token: str, identity_token: str, verifier_token
         return False
 
 def create_unbind_request(access_token: str, identity_token: str) -> bool:
-    """إنشاء طلب إلغاء ربط البريد"""
+    """
+    إنشاء طلب إلغاء ربط البريد
+    مطابقة تماماً لسكريبتات OBITO (نفس ترتيب المعاملات)
+    """
     url = "https://100067.connect.garena.com/game/account_security/bind:create_unbind_request"
     headers = {
         "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
@@ -336,6 +358,31 @@ def revoke_token(access_token: str) -> bool:
         return False
     except Exception as e:
         logging.error(f"revoke_token exception: {e}")
+        return False
+
+# ================================================================
+# ========== دوال إضافية (مساعدة) ==========
+# ================================================================
+
+def cancel_request(access_token: str) -> bool:
+    """
+    إلغاء أي طلب ربط معلق
+    (مستخدم في سكريبتات OBITO)
+    """
+    url = "https://100067.connect.garena.com/game/account_security/bind:cancel_request"
+    headers = {
+        "User-Agent": "GarenaMSDK/4.0.19P9(Redmi Note 5 ;Android 9;en;US;)",
+        "Connection": "Keep-Alive",
+        "Accept-Encoding": "gzip"
+    }
+    data = {
+        "app_id": "100067",
+        "access_token": access_token
+    }
+    try:
+        resp = requests.post(url, data=data, headers=headers, timeout=10)
+        return resp.status_code == 200
+    except:
         return False
 
 # ================================================================
