@@ -14,6 +14,7 @@ from handlers.account_services import (
     handle_burn_token,
     handle_add_recovery, handle_add_recovery_otp, handle_add_recovery_sec,
     handle_unbind, handle_unbind_otp, handle_unbind_sec,
+    handle_unbind_confirm,  # <-- استيراد المعالج الجديد
     handle_bot_otp, handle_delete_links,
     handle_account_selection, handle_account_control, handle_delete_account,
     handle_otp_input, handle_secondary_password_input, handle_unbind_otp_input,
@@ -176,6 +177,8 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_unbind, pattern='^unbind_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
+    # ===== تأكيد إلغاء الربط المعلق (جديد) =====
+    app.add_handler(CallbackQueryHandler(handle_unbind_confirm, pattern='^unbind_confirm_'))
     
     # ===== الخدمات الجديدة (غير متوفرة) =====
     app.add_handler(CallbackQueryHandler(handle_bot_otp, pattern='^bototp_'))
