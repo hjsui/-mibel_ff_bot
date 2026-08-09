@@ -168,14 +168,10 @@ class Database:
         return user.get('accounts', [])
 
     def add_account_to_user(self, user_id: int, account_data: dict) -> bool:
-        """
-        إضافة حساب جديد للمستخدم مع التحقق من عدم التكرار
-        account_data يجب أن يحتوي على: name, id, eat, region (ويمكن access_token, token_expiry)
-        """
+        """إضافة حساب جديد للمستخدم مع التحقق من عدم التكرار"""
         user = self.get_user(user_id)
         if 'accounts' not in user:
             user['accounts'] = []
-        # التحقق من عدم وجود حساب بنفس الـ id
         for acc in user['accounts']:
             if acc.get('id') == account_data.get('id'):
                 return False
@@ -214,7 +210,7 @@ class Database:
                 if expiry:
                     acc['token_expiry'] = expiry
                 else:
-                    acc['token_expiry'] = int(datetime.now().timestamp()) + 86400  # 24 ساعة
+                    acc['token_expiry'] = int(datetime.now().timestamp()) + 86400
                 self.update_user(user_id, user)
                 return True
         return False
