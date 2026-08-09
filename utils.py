@@ -14,9 +14,6 @@ from database import db
 # ================================================================
 
 def get_text(user_id: int, key: str, **kwargs) -> str:
-    """
-    جلب النص المترجم حسب لغة المستخدم (من قاعدة البيانات)
-    """
     user = db.get_user(user_id)
     lang = user.get('lang', 'ar')
     from texts import TEXTS
@@ -26,11 +23,9 @@ def get_text(user_id: int, key: str, **kwargs) -> str:
     return text.format(**kwargs) if kwargs else text
 
 def get_user_lang(user_id: int) -> str:
-    """جلب لغة المستخدم من قاعدة البيانات"""
     return db.get_user_lang(user_id)
 
 def set_user_lang(user_id: int, lang: str) -> None:
-    """تحديث لغة المستخدم في قاعدة البيانات"""
     db.set_user_lang(user_id, lang)
 
 # ================================================================
@@ -38,11 +33,9 @@ def set_user_lang(user_id: int, lang: str) -> None:
 # ================================================================
 
 def get_user_accounts(user_id: int) -> List[Dict]:
-    """جلب قائمة حسابات المستخدم من قاعدة البيانات"""
     return db.get_user_accounts(user_id)
 
 def add_account(user_id: int, name: str, account_id: str, eat: str, region: str) -> bool:
-    """إضافة حساب جديد مع تخزين دائم في قاعدة البيانات"""
     account_data = {
         'name': name,
         'id': account_id,
@@ -52,26 +45,19 @@ def add_account(user_id: int, name: str, account_id: str, eat: str, region: str)
     return db.add_account_to_user(user_id, account_data)
 
 def delete_account(user_id: int, account_id: str) -> bool:
-    """حذف حساب من قاعدة البيانات"""
     return db.remove_account_from_user(user_id, account_id)
 
 def get_account_by_id(user_id: int, account_id: str) -> Optional[Dict]:
-    """البحث عن حساب بواسطة الـ id من قاعدة البيانات"""
     return db.get_account_by_id(user_id, account_id)
 
 def update_account_token(user_id: int, account_id: str, access_token: str, expiry: int = None) -> bool:
-    """تحديث access_token وتاريخ انتهائه في قاعدة البيانات"""
     return db.update_account_token(user_id, account_id, access_token, expiry)
 
 # ================================================================
-# ========== دوال تحويل EAT (محسّنة مع بدائل) ==========
+# ========== دوال تحويل EAT ==========
 # ================================================================
 
 def _extract_token_from_url(url: str) -> dict:
-    """
-    استخراج المعلومات من رابط EAT مباشرة (بدون اتصال خارجي)
-    مطابقة لسكريبتات OBITO
-    """
     result = {
         "success": False,
         "access_token": None,
@@ -85,7 +71,6 @@ def _extract_token_from_url(url: str) -> dict:
         parsed = urllib.parse.urlparse(url)
         params = urllib.parse.parse_qs(parsed.query)
         
-        # استخراج eat
         if 'eat' in params:
             result['eat'] = params['eat'][0]
         else:
@@ -94,34 +79,27 @@ def _extract_token_from_url(url: str) -> dict:
             if eat_match:
                 result['eat'] = eat_match.group(1)
         
-        # استخراج account_id
         if 'account_id' in params:
             result['account_id'] = params['account_id'][0]
         else:
-            import re
             acc_match = re.search(r'account_id=([^&]+)', url)
             if acc_match:
                 result['account_id'] = acc_match.group(1)
         
-        # استخراج nickname
         if 'nickname' in params:
             result['nickname'] = urllib.parse.unquote(params['nickname'][0])
         else:
-            import re
             nick_match = re.search(r'nickname=([^&]+)', url)
             if nick_match:
                 result['nickname'] = urllib.parse.unquote(nick_match.group(1))
         
-        # استخراج region
         if 'region' in params:
             result['region'] = params['region'][0]
         else:
-            import re
             region_match = re.search(r'region=([^&]+)', url)
             if region_match:
                 result['region'] = region_match.group(1)
         
-        # استخراج access_token (إذا كان موجوداً)
         if 'access_token' in params:
             result['access_token'] = params['access_token'][0]
             result['success'] = True
@@ -138,13 +116,6 @@ def _extract_token_from_url(url: str) -> dict:
     return result
 
 def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 2) -> Dict:
-    """
-    تحويل EAT إلى JWT أو Access Token.
-    
-    أولاً: محاولة استخدام fftools.site.
-    ثانياً: إذا فشل، محاولة استخراج المعلومات مباشرة من الرابط.
-    مطابقة لسكريبتات OBITO
-    """
     url = "https://www.fftools.site/api/verify-token"
     headers = {
         "Content-Type": "application/json",
@@ -198,39 +169,23 @@ def convert_eat(eat_url: str, action: str = "eat_to_jwt", max_retries: int = 2) 
     return {"success": False, "error": "فشل التحويل من جميع المصادر (fftools.site غير متاح، والرابط لا يحتوي على معلومات كافية)"}
 
 def get_access_token_for_account(account: Dict, user_id: int = None) -> Optional[str]:
-    """
-    استخراج access_token من EAT المحفوظ مع تخزين مؤقت في قاعدة البيانات
-    
-    Args:
-        account: بيانات الحساب (يجب أن يحتوي على 'eat')
-        user_id: معرف المستخدم (للتحديث في قاعدة البيانات)
-    
-    Returns:
-        access_token إذا نجح، وإلا None
-    """
-    # التحقق من التوكن المخزن
     if account.get('access_token') and account.get('token_expiry'):
         if int(time.time()) < account.get('token_expiry', 0):
             return account.get('access_token')
     
-    # محاولة التحويل
     access_data = convert_eat(account['eat'], "eat_to_access")
     if access_data.get("success"):
         token = access_data.get("result_token")
         if token:
-            # تحديث التوكن في قاعدة البيانات إذا كان لدينا user_id
             if user_id and account.get('id'):
-                expiry = int(time.time()) + 86400  # 24 ساعة
+                expiry = int(time.time()) + 86400
                 update_account_token(user_id, account['id'], token, expiry)
-            # تحديث التوكن في الكائن الحالي
             account['access_token'] = token
             account['token_expiry'] = int(time.time()) + 86400
             return token
-    
     return None
 
 def decode_jwt(jwt_token: str) -> Dict:
-    """فك تشفير JWT واستخراج البيانات"""
     try:
         payload = jwt_token.split('.')[1]
         payload += '=' * (4 - len(payload) % 4)
@@ -254,7 +209,6 @@ def extract_eat_link(text: str) -> str:
     return text.strip()
 
 def get_eat_nickname(eat_url: str) -> str:
-    """استخراج الاسم من رابط EAT"""
     try:
         if 'nickname=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -265,7 +219,6 @@ def get_eat_nickname(eat_url: str) -> str:
     return None
 
 def get_eat_account_id(eat_url: str) -> str:
-    """استخراج account_id من رابط EAT"""
     try:
         if 'account_id=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -276,7 +229,6 @@ def get_eat_account_id(eat_url: str) -> str:
     return None
 
 def get_eat_region(eat_url: str) -> str:
-    """استخراج المنطقة من رابط EAT"""
     try:
         if 'region=' in eat_url:
             parsed = urllib.parse.urlparse(eat_url)
@@ -287,7 +239,6 @@ def get_eat_region(eat_url: str) -> str:
     return 'ME'
 
 def is_token_valid(account: Dict) -> bool:
-    """التحقق من صحة التوكن المخزن"""
     token = account.get('access_token')
     expiry = account.get('token_expiry')
     if not token:
