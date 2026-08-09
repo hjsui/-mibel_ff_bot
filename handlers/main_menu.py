@@ -25,8 +25,6 @@ def get_main_menu(user_id):
 def get_account_controls(user_id, account):
     """
     لوحة تحكم الحساب - الخدمات المطلوبة فقط
-    ملاحظة: أزرار "اضافة/تغيير استعادة" تظهر بنفس الاسم،
-    لكن منطقها يختلف حسب وجود بريد (يتم التعامل معه في account_services)
     """
     acc_id = account['id']
     
