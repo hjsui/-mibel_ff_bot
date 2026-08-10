@@ -14,7 +14,7 @@ from handlers.account_services import (
     handle_burn_token,
     handle_add_recovery, handle_add_recovery_otp, handle_add_recovery_sec,
     handle_unbind, handle_unbind_otp, handle_unbind_sec,
-    handle_unbind_confirm,  # <-- استيراد المعالج الجديد
+    handle_unbind_confirm,  # <-- مهم
     handle_bot_otp, handle_delete_links,
     handle_account_selection, handle_account_control, handle_delete_account,
     handle_otp_input, handle_secondary_password_input, handle_unbind_otp_input,
@@ -30,7 +30,6 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# ========== معالج الأخطاء العالمي ==========
 async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         raise context.error
@@ -63,7 +62,6 @@ async def error_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-# ========== أمر الأدمن (/meow) ==========
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if str(user_id) != "8530485909":
@@ -121,7 +119,6 @@ async def admin_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
         await query.edit_message_text("⚙️ لوحة تحكم الأدمن", reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ========== معالجات النصوص العامة ==========
 async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     action = context.user_data.get('action')
@@ -142,59 +139,45 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await handle_add_account(update, context)
 
-# ========== الوظيفة الرئيسية ==========
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-    
-    # إضافة معالج الأخطاء العالمي
     app.add_error_handler(error_handler)
     
-    # ===== الأوامر الأساسية =====
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("meow", admin_panel))
     
-    # ===== أزرار القائمة الرئيسية =====
     app.add_handler(CallbackQueryHandler(button_handler, pattern='^(main_menu|add_account|my_accounts|terms|change_lang|lang_ar|lang_en|manage_account)$'))
     
-    # ===== معالجات الحسابات الأساسية =====
     app.add_handler(CallbackQueryHandler(handle_account_selection, pattern='^control_'))
     app.add_handler(CallbackQueryHandler(handle_account_control, pattern='^account_control_'))
     app.add_handler(CallbackQueryHandler(handle_delete_account, pattern='^del_'))
     
-    # ===== معالجات الخدمات الأساسية =====
     app.add_handler(CallbackQueryHandler(handle_recovery, pattern='^recovery_'))
     app.add_handler(CallbackQueryHandler(handle_links, pattern='^links_'))
     app.add_handler(CallbackQueryHandler(handle_try_otp, pattern='^tryotp_'))
     app.add_handler(CallbackQueryHandler(handle_spam_login, pattern='^spam_'))
     app.add_handler(CallbackQueryHandler(handle_burn_token, pattern='^burn_'))
     
-    # ===== إضافة/تغيير استعادة =====
     app.add_handler(CallbackQueryHandler(handle_add_recovery, pattern='^addrec_'))
     app.add_handler(CallbackQueryHandler(handle_add_recovery_otp, pattern='^addrec_otp_'))
     app.add_handler(CallbackQueryHandler(handle_add_recovery_sec, pattern='^addrec_sec_'))
     
-    # ===== إلغاء ارتباط الاستعادة =====
     app.add_handler(CallbackQueryHandler(handle_unbind, pattern='^unbind_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
-    # ===== تأكيد إلغاء الربط المعلق (جديد) =====
-    app.add_handler(CallbackQueryHandler(handle_unbind_confirm, pattern='^unbind_confirm_'))
+    app.add_handler(CallbackQueryHandler(handle_unbind_confirm, pattern='^unbind_confirm_'))  # <-- مهم
     
-    # ===== الخدمات الجديدة (غير متوفرة) =====
     app.add_handler(CallbackQueryHandler(handle_bot_otp, pattern='^bototp_'))
     app.add_handler(CallbackQueryHandler(handle_delete_links, pattern='^dellinks_'))
     
-    # ===== معالجات المصادقة والاشتراكات =====
     app.add_handler(CallbackQueryHandler(handle_buy_now, pattern='^buy_now$'))
     app.add_handler(CallbackQueryHandler(handle_use_code, pattern='^use_code$'))
     app.add_handler(CallbackQueryHandler(handle_services_explain, pattern='^services_explain$'))
     app.add_handler(CallbackQueryHandler(handle_customer_service, pattern='^customer_service$'))
     app.add_handler(CallbackQueryHandler(handle_bot_group, pattern='^bot_group$'))
     
-    # ===== معالجات الأدمن =====
     app.add_handler(CallbackQueryHandler(admin_buttons, pattern='^admin_'))
     
-    # ===== معالج النصوص (يستقبل جميع الرسائل النصية) =====
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_input))
     
     print("🤖 البوت شغال... اضغط Ctrl+C لإيقافه.")
