@@ -40,14 +40,10 @@ async def safe_edit_message(query, text, reply_markup=None):
             return False
 
 async def safe_send_message(update, text, reply_markup=None):
-    """إرسال رسالة جديدة مع حذف الرسالة القديمة إن وجدت"""
+    """إرسال رسالة جديدة (بدون حذف الرسالة القديمة)"""
     try:
         if update.callback_query:
             await update.callback_query.message.reply_text(text, reply_markup=reply_markup)
-            try:
-                await update.callback_query.message.delete()
-            except:
-                pass
         else:
             await update.message.reply_text(text, reply_markup=reply_markup)
     except Exception as e:
@@ -290,13 +286,10 @@ async def handle_links(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await wait_msg.edit_text(msg, reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
 
 # ================================================================
-# ========== إضافة/تغيير استعادة (المنطق الجديد) ==========
+# ========== إضافة/تغيير استعادة ==========
 # ================================================================
 
 async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    القائمة الرئيسية لخدمة الاستعادة: تظهر للمستخدم خيار إضافة أو تغيير حسب وجود بريد.
-    """
     user_id = update.effective_user.id
     query = update.callback_query
     await query.answer()
@@ -326,21 +319,104 @@ async def handle_add_recovery(update: Update, context: ContextTypes.DEFAULT_TYPE
             [InlineKeyboardButton("🔐 تغيير عبر رمز الامان", callback_data=f'addrec_sec_{acc_id}')],
             [InlineKeyboardButton("🔙 عودة", callback_data=f'account_control_{acc_id}')]
         ]
+        await safe_edit_message(query, msg, InlineKeyboardMarkup(keyboard))
     else:
         # حالة الإضافة (لا يوجد بريد)
         msg = "📧 أرسل البريد الإلكتروني المراد ربطه الآن:\n\n💡 ملاحظة هامة: سيرفرات غارينا قد تحظر إرسال الأكواد لبريد Gmail أحياناً. إذا لم يصلك الكود، يرجى استخدام بريد (Outlook, Yahoo) أو بريد وهمي لتجنب المشكلة."
         keyboard = [
             [InlineKeyboardButton("🔙 عودة", callback_data=f'account_control_{acc_id}')]
         ]
-        # ننتقل مباشرة إلى حالة انتظار البريد الجديد
         context.user_data['operation'] = 'add_recovery'
         context.user_data['action'] = 'waiting_new_email'
         await safe_edit_message(query, msg, InlineKeyboardMarkup(keyboard))
-        return
-    
-    await safe_edit_message(query, msg, InlineKeyboardMarkup(keyboard))
 
-# ===== معالج البريد الجديد (للإضافة) =====
+# ===== نقطة البداية لـ OTP (تحديد إذا كانت إضافة أم تغيير) =====
+async def handle_add_recovery_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    
+    acc_id = _extract_account_id(query.data)
+    context.user_data['acc_id'] = acc_id
+    accounts = get_user_accounts(user_id)
+    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
+    
+    if not account:
+        await safe_send_message(update, "⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.message.delete()
+        except:
+            pass
+        return
+
+    access_token = get_access_token_for_account(account, user_id)
+    if not access_token:
+        await safe_send_message(update, get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.message.delete()
+        except:
+            pass
+        return
+
+    bind_info = check_bind_info(access_token)
+    current_email = bind_info.get("email") if bind_info else None
+
+    if current_email:
+        # === حالة التغيير: نرسل OTP إلى البريد القديم تلقائياً ===
+        context.user_data['operation'] = 'change_recovery'
+        context.user_data['old_email'] = current_email
+        
+        if send_otp(access_token, current_email):
+            context.user_data['action'] = 'waiting_otp'
+            await safe_send_message(
+                update,
+                f"✅ تم إرسال رمز OTP إلى `{current_email}`\n\nيرجى إرسال الرمز هنا:",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await safe_send_message(
+                update,
+                "❌ فشل إرسال OTP. تأكد من صحة البريد.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        try:
+            await query.message.delete()
+        except:
+            pass
+    else:
+        # === حالة الإضافة: تم التعامل معها في handle_add_recovery ===
+        await safe_send_message(
+            update,
+            "⚠️ يبدو أن هناك خطأ. يرجى العودة إلى القائمة الرئيسية والمحاولة مرة أخرى.",
+            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+        )
+        try:
+            await query.message.delete()
+        except:
+            pass
+
+# ===== رمز الأمان (غير متوفر) =====
+async def handle_add_recovery_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    query = update.callback_query
+    await query.answer()
+    
+    acc_id = _extract_account_id(query.data)
+    await safe_send_message(
+        update,
+        "🚫 هذا الخيار غير متوفر حالياً.\nيمكنك استخدام **تغيير عبر OTP** كبديل.",
+        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+    )
+    try:
+        await query.message.delete()
+    except:
+        pass
+
+# ================================================================
+# ========== معالجات الإدخال (النصوص) ==========
+# ================================================================
+
+# ===== معالج البريد الجديد =====
 async def handle_new_email_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     new_email = update.message.text.strip()
@@ -364,33 +440,56 @@ async def handle_new_email_input(update: Update, context: ContextTypes.DEFAULT_T
         context.user_data['action'] = None
         return
 
-    # التحقق مما إذا كان البريد مربوط بحساب آخر
-    # ملاحظة: نتحقق من أن البريد غير مربوط بهذا الحساب نفسه
-    bind_info = check_bind_info(access_token)
-    current_email = bind_info.get("email") if bind_info else None
-    
-    if current_email and current_email == new_email:
-        await update.message.reply_text(
-            "⚠️ هذا البريد مربوط بالفعل بهذا الحساب!",
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
-        context.user_data['action'] = None
+    # === حالة الإضافة ===
+    if operation == 'add_recovery':
+        # التحقق من أن البريد غير مربوط بهذا الحساب
+        bind_info = check_bind_info(access_token)
+        current_email = bind_info.get("email") if bind_info else None
+        if current_email and current_email == new_email:
+            await update.message.reply_text(
+                "⚠️ هذا البريد مربوط بالفعل بهذا الحساب!",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+            context.user_data['action'] = None
+            return
+
+        if send_otp(access_token, new_email):
+            context.user_data['new_email'] = new_email
+            context.user_data['action'] = 'waiting_otp'
+            context.user_data['operation'] = 'add_recovery_verify'
+            await update.message.reply_text(
+                "✅ تم إرسال الرمز (OTP) لبريدك. يرجى إرساله هنا:",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await update.message.reply_text(
+                "❌ فشل إرسال OTP. تأكد من صحة البريد أو حاول باستخدام بريد آخر.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+            context.user_data['action'] = None
         return
-    
-    # نرسل OTP إلى البريد الجديد
-    if send_otp(access_token, new_email):
-        context.user_data['new_email'] = new_email
-        context.user_data['action'] = 'waiting_otp'
-        context.user_data['operation'] = 'add_recovery_verify'
-        await update.message.reply_text(
-            f"✅ تم إرسال الرمز (OTP) لبريدك. يرجى إرساله هنا:",
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
+
+    # === حالة التغيير (بعد التحقق من OTP القديم) ===
+    elif operation == 'change_recovery':
+        # إرسال OTP إلى البريد الجديد
+        if send_otp(access_token, new_email):
+            context.user_data['new_email'] = new_email
+            context.user_data['action'] = 'waiting_otp'
+            context.user_data['operation'] = 'change_recovery_new_email'
+            await update.message.reply_text(
+                f"✅ تم إرسال رمز OTP إلى `{new_email}`\n\nيرجى إرسال الرمز هنا:",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+        else:
+            await update.message.reply_text(
+                "❌ فشل إرسال OTP إلى البريد الجديد.",
+                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
+            )
+            context.user_data['action'] = None
+        return
+
     else:
-        await update.message.reply_text(
-            "❌ فشل إرسال OTP. تأكد من صحة البريد أو حاول باستخدام بريد آخر.",
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
+        await update.message.reply_text("⚠️ عملية غير معروفة، أعد المحاولة من البداية.")
         context.user_data['action'] = None
 
 # ===== معالج OTP الرئيسي =====
@@ -445,9 +544,8 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         identity_token = verify_identity_otp(access_token, old_email, otp)
         if identity_token:
             context.user_data['identity_token'] = identity_token
-            # نطلب البريد الجديد
             context.user_data['action'] = 'waiting_new_email'
-            context.user_data['operation'] = 'change_recovery'
+            # نبقى operation = 'change_recovery' ليعرف handle_new_email_input أنه تغيير
             await update.message.reply_text(
                 "✅ تم التحقق.\n📧 أرسل البريد الإلكتروني الجديد الذي تريد ربطه:",
                 reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
@@ -467,9 +565,9 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if verifier_token:
             identity_token = context.user_data.get('identity_token')
             if identity_token and create_rebind_request(access_token, identity_token, verifier_token, new_email):
-                # إعادة توجيه إلى القائمة الرئيسية
+                # إعادة توجيه إلى قائمة الخدمات مع رسالة نجاح
                 await update.message.reply_text(
-                    f"✅ تم تغيير بريد الاستعادة بنجاح!",
+                    "✅ تم تغيير بريد الاستعادة بنجاح!",
                     reply_markup=get_account_controls(user_id, account)
                 )
             else:
@@ -491,9 +589,8 @@ async def handle_otp_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         identity_token = verify_identity_otp(access_token, old_email, otp)
         if identity_token:
             if create_unbind_request(access_token, identity_token):
-                # إعادة توجيه إلى القائمة الرئيسية
                 await update.message.reply_text(
-                    f"✅ تم الغاء ارتباط الاستعادة بنجاح ✅",
+                    "✅ تم الغاء ارتباط الاستعادة بنجاح ✅",
                     reply_markup=get_account_controls(user_id, account)
                 )
             else:
@@ -552,9 +649,8 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
             return
 
         if create_bind_request(access_token, new_email, verifier_token, sec_code):
-            # إعادة توجيه إلى القائمة الرئيسية
             await update.message.reply_text(
-                f"✅ تم إرسال طلب الربط بنجاح.\nيرجى الانتظار لحين انتهاء مدة التأكيد.",
+                "✅ تم إرسال طلب الربط بنجاح.\nيرجى الانتظار لحين انتهاء مدة التأكيد.",
                 reply_markup=get_account_controls(user_id, account)
             )
         else:
@@ -567,68 +663,6 @@ async def handle_secondary_password_input(update: Update, context: ContextTypes.
 
     await update.message.reply_text("⚠️ عملية غير معروفة، أعد المحاولة من البداية.")
     context.user_data['action'] = None
-
-# ===== نقطة البداية لـ OTP (تحديد إذا كانت إضافة أم تغيير) =====
-async def handle_add_recovery_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    query = update.callback_query
-    await query.answer()
-    
-    acc_id = _extract_account_id(query.data)
-    context.user_data['acc_id'] = acc_id
-    accounts = get_user_accounts(user_id)
-    account = next((acc for acc in accounts if acc['id'] == acc_id), None)
-    
-    if not account:
-        await safe_send_message(update, "⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
-        return
-
-    access_token = get_access_token_for_account(account, user_id)
-    if not access_token:
-        await safe_send_message(update, get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
-        return
-
-    bind_info = check_bind_info(access_token)
-    current_email = bind_info.get("email") if bind_info else None
-
-    if current_email:
-        # === حالة التغيير: نرسل OTP إلى البريد القديم تلقائياً ===
-        context.user_data['operation'] = 'change_recovery'
-        context.user_data['old_email'] = current_email
-        
-        if send_otp(access_token, current_email):
-            context.user_data['action'] = 'waiting_otp'
-            await safe_send_message(
-                update,
-                f"✅ تم إرسال رمز OTP إلى `{current_email}`\n\nيرجى إرسال الرمز هنا:",
-                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-            )
-        else:
-            await safe_send_message(
-                update,
-                "❌ فشل إرسال OTP. تأكد من صحة البريد.",
-                reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-            )
-    else:
-        # === حالة الإضافة: تم التعامل معها في handle_add_recovery ===
-        await safe_send_message(
-            update,
-            "⚠️ يبدو أن هناك خطأ. يرجى العودة إلى القائمة الرئيسية والمحاولة مرة أخرى.",
-            reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-        )
-
-# ===== رمز الأمان (غير متوفر) =====
-async def handle_add_recovery_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    query = update.callback_query
-    await query.answer()
-    
-    acc_id = _extract_account_id(query.data)
-    await safe_send_message(
-        update,
-        "🚫 هذا الخيار غير متوفر حالياً.\nيمكنك استخدام **تغيير عبر OTP** كبديل.",
-        reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
-    )
 
 # ================================================================
 # ========== إلغاء ارتباط الاستعادة ==========
@@ -735,11 +769,19 @@ async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not account:
         await safe_send_message(update, "⚠️ الحساب غير موجود.", reply_markup=get_main_menu(user_id))
+        try:
+            await query.message.delete()
+        except:
+            pass
         return
 
     access_token = get_access_token_for_account(account, user_id)
     if not access_token:
         await safe_send_message(update, get_text(user_id, 'no_access_token'), reply_markup=get_back_button(user_id, f'account_control_{acc_id}'))
+        try:
+            await query.message.delete()
+        except:
+            pass
         return
 
     bind_info = check_bind_info(access_token)
@@ -751,6 +793,10 @@ async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ لا يوجد بريد استعادة لإلغاء ربطه.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
+        try:
+            await query.message.delete()
+        except:
+            pass
         return
 
     # نرسل OTP إلى البريد الحالي تلقائياً
@@ -770,6 +816,10 @@ async def handle_unbind_otp(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "❌ فشل إرسال OTP. تأكد من صحة البريد.",
             reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
         )
+    try:
+        await query.message.delete()
+    except:
+        pass
 
 # ===== رمز الأمان لإلغاء الارتباط (غير متوفر) =====
 async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -783,6 +833,10 @@ async def handle_unbind_sec(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🚫 هذه الخدمة ستتوفر قريباً.\nيمكنك استخدام **الغاء عبر OTP** كبديل.",
         reply_markup=get_back_button(user_id, f'account_control_{acc_id}')
     )
+    try:
+        await query.message.delete()
+    except:
+        pass
 
 # ================================================================
 # ========== الخدمات غير المتوفرة ==========
