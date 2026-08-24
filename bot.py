@@ -14,7 +14,7 @@ from handlers.account_services import (
     handle_burn_token,
     handle_add_recovery, handle_add_recovery_otp, handle_add_recovery_sec,
     handle_unbind, handle_unbind_otp, handle_unbind_sec,
-    handle_unbind_confirm,  # <-- مهم
+    handle_unbind_confirm,
     handle_bot_otp, handle_delete_links,
     handle_account_selection, handle_account_control, handle_delete_account,
     handle_otp_input, handle_secondary_password_input, handle_unbind_otp_input,
@@ -140,6 +140,22 @@ async def handle_text_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await handle_add_account(update, context)
 
 def main():
+    # ===== تشغيل خادم Flask لتلبية متطلبات Render Web Service =====
+    from flask import Flask
+    from threading import Thread
+
+    flask_app = Flask(__name__)
+
+    @flask_app.route('/')
+    def health():
+        return "Bot is running!"
+
+    def run_flask():
+        flask_app.run(host='0.0.0.0', port=8080)
+
+    Thread(target=run_flask, daemon=True).start()
+    # ===== نهاية جزء Flask =====
+
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_error_handler(error_handler)
     
@@ -165,7 +181,7 @@ def main():
     app.add_handler(CallbackQueryHandler(handle_unbind, pattern='^unbind_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_otp, pattern='^unbind_otp_'))
     app.add_handler(CallbackQueryHandler(handle_unbind_sec, pattern='^unbind_sec_'))
-    app.add_handler(CallbackQueryHandler(handle_unbind_confirm, pattern='^unbind_confirm_'))  # <-- مهم
+    app.add_handler(CallbackQueryHandler(handle_unbind_confirm, pattern='^unbind_confirm_'))
     
     app.add_handler(CallbackQueryHandler(handle_bot_otp, pattern='^bototp_'))
     app.add_handler(CallbackQueryHandler(handle_delete_links, pattern='^dellinks_'))
